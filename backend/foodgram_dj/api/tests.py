@@ -1,4 +1,4 @@
-"""Тесты для приложения dishes."""
+"""Тесты для API."""
 # from django.test import TestCase
 
 # Create your tests here.
