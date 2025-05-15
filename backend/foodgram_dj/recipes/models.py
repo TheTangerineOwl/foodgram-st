@@ -21,11 +21,11 @@ class Ingredient(models.Model):
         TSP = 'teaspoons', _('ч.л.')
         SP = 'spoons', _('ст.л.')
 
-    name = models.CharField('Название', max_length=256)
+    name = models.CharField(_('Название'), max_length=256)
     measurement_unit = models.CharField(
-        'Единица измерения',
+        _('Единица измерения'),
         choices=MeasurementUnit,
-        default=MeasurementUnit.GRб,
+        default=MeasurementUnit.GR,
         null=False
     )
 

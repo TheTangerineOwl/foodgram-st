@@ -27,6 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# Получение дополненной модели пользователя в качестве стандартной
+AUTH_USER_MODEL = 'userprofile.models.UserProfile'
 
 # Application definition
 
@@ -39,8 +41,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework.authtoken',
     'rest_framework',
+    'userprofile.apps.UserProfileConfig',
     'api.apps.ApiConfig',
-    'dishes.apps.DishesConfig'
+    'recipes.apps.RecipesConfig'
 ]
 
 MIDDLEWARE = [
