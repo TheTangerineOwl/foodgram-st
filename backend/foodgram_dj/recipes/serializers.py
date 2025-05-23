@@ -71,14 +71,14 @@ class RecipeSerializer(serializers.ModelSerializer):
         return None
 
     def get_is_favorited(self, obj):
-        obj.is_favorited = False
+        is_favorited = False
 
-        return obj.is_favorited
+        return is_favorited
 
     def get_is_in_shopping_cart(self, obj):
-        obj.is_in_shopping_cart = False
+        is_in_shopping_cart = False
 
-        return obj.is_in_shopping_cart
+        return is_in_shopping_cart
 
     def create(self, validated_data):
         """Валидация и добавление ингредиентов."""
