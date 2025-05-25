@@ -46,7 +46,8 @@ INSTALLED_APPS = [
     'userprofile.apps.UserProfileConfig',
     'api.apps.ApiConfig',
     'recipes.apps.RecipesConfig',
-    'django_short_url'
+    'django_short_url',
+    'django_filters',
 ]
 
 DJANGO_SHORT_URL_REDIRECT_URL = ''

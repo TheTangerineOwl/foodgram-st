@@ -11,7 +11,7 @@ router.register(r'recipes', RecipeViewSet)
 router.register(r'ingredients', IngredientViewSet)
 
 urlpatterns = [
-    re_path(r'^(?P<surl>\w+)', surl_views.short_url_redirect,
+    re_path(r's/^(?P<surl>\w+)', surl_views.short_url_redirect,
             name='short_url_redirect'),
     path('', include(router.urls)),
 ]

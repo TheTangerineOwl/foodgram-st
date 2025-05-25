@@ -4,14 +4,13 @@ from django.core.files.base import ContentFile
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
-from django_short_url.views import get_surl
 from django_short_url.models import ShortURL
+from django_short_url.views import get_surl
 # from django_short_url.urls import 
 from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
-
 from .models import Recipe, Ingredient, IngredientRecipe
 
 
@@ -130,16 +129,16 @@ class RecipeSerializer(serializers.ModelSerializer):
         # Создаем полный URL для рецепта
         full_url = request.build_absolute_uri(recipe.get_absolute_url())
 
-        # Создаем или получаем существующую короткую ссылку
-        # short_url, created = ShortURL.objects.get_or_create(url=full_url)
-        short_url = get_surl(full_url)
-
+        short_url, created = ShortURL.objects.get_or_create(url=full_url)
         # Возвращаем короткую ссылку
         return Response({
             'short-link': short_url
         }, status=status.HTTP_200_OK)
 
-    def redirect_short_url(request, short_url):
-        """Перенаправляет короткую ссылку на оригинальный URL."""
-        url = get_surl(short_url)
-        return HttpResponseRedirect(url)
+
+# def redirect_short_url(request, short_url):
+#     """Перенаправляет короткую ссылку на оригинальный URL."""
+#     url = get_object_or_404(ShortURL, surl=short_url).url
+
+#     # Получаем оригинальный URL и выполняем перенаправление
+#     return HttpResponseRedirect(url)

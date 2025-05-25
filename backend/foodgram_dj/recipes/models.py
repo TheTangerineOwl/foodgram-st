@@ -25,9 +25,10 @@ class Ingredient(models.Model):
     name = models.CharField(_('Название'), max_length=256)
     measurement_unit = models.CharField(
         _('Единица измерения'),
-        choices=MeasurementUnit,
+        choices=MeasurementUnit.choices,
         default=MeasurementUnit.GR,
-        null=False
+        null=False,
+        max_length=30
     )
 
     class Meta:
@@ -54,6 +55,7 @@ class Recipe(models.Model):
     image = models.ImageField(
         verbose_name=_('Фото'),
         upload_to='recipes/images',
+        blank=True,
         default=None
     )
     author = models.ForeignKey(
@@ -66,14 +68,6 @@ class Recipe(models.Model):
         through='IngredientRecipe',
         blank=False
     )
-    # is_favorited = models.BooleanField(
-    #     verbose_name=_('В Избранном'),
-    #     default=False
-    # )
-    # is_in_shopping_cart = models.BooleanField(
-    #     verbose_name=_('В Корзине'),
-    #     default=False
-    # )
 
     class Meta:
         verbose_name = _('рецепт')
@@ -106,24 +100,6 @@ class IngredientRecipe(models.Model):
         _('Количество'),
         blank=False
     )
-
-    # class MeasurementUnit(models.TextChoices):
-    #     """Перечисление возможных единиц измерения для ингредиента."""
-
-    #     KG = 'kilo', _('кг.')
-    #     GR = 'gr', _('г.')
-    #     LITER = 'liter', _('л.')
-    #     ML = 'ml', _('мл.')
-    #     PIECE = 'pcs', _('шт.')
-    #     TSP = 'teaspoons', _('ч.л.')
-    #     SP = 'spoons', _('ст.л.')
-
-    # measurement_unit = models.CharField(
-    #     _('Единица измерения'),
-    #     choices=MeasurementUnit,
-    #     default=MeasurementUnit.GR,
-    #     null=False
-    # )
 
     def __str__(self):
         """Строковое представление связи."""
