@@ -17,8 +17,9 @@ import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
-dotenv_file = os.path.join(BASE_DIR, "infra", ".env")
+PROJECT_DIR = Path(__file__).resolve().parent.parent.parent.parent
+#dotenv_file = os.path.join(PROJECT_DIR, "infra", ".env")
+dotenv_file = os.path.join(BASE_DIR, ".env")
 if os.path.isfile(dotenv_file):
     dotenv.load_dotenv(dotenv_file)
 
