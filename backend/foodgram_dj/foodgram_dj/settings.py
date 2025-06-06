@@ -169,6 +169,13 @@ REST_FRAMEWORK = {
 
 }
 
+DJOSER = {
+    'LOGIN_FIELD': 'userprofile.models.UserProfile.email',
+    'SERIALIZERS': {
+        'user': 'userprofile.serializers.UserProfileSerializer',
+    },
+}
+
 SIMPLE_JWT = {
     # Устанавливаем срок жизни токена
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),

@@ -56,10 +56,12 @@ class UserProfileSerializer(UserSerializer):
             user=current_user, subscriber=obj).exists()
 
     @action(detail=True, methods=['delete'], url_path='avatar')
-    def delete_avatar(self, request, pk=None):
-        user = self.get_object()
+    def delete_avatar(self, instance):
+        instance.avatar = None
+        instance.save()
+        return instance
 
-    @action(method=['put'], url_path='avatar')
+    @action(detail=True, method=['put'], url_path='avatar')
     def put_avatar(self, instance, validated_data):
         instance.avatar = validated_data.get('avatar', instance.avatar)
         instance.save()

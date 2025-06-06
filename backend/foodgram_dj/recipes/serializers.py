@@ -1,17 +1,18 @@
 """Сериализаторы для моделей рецептов и ингредиентов."""
 from base64 import b64decode
+from io import StringIO
+from django.contrib.auth import get_user
 from django.core.files.base import ContentFile
-from django.http import HttpResponseRedirect
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from django_short_url.models import ShortURL
 from django_short_url.views import get_surl
-# from django_short_url.urls import 
-from rest_framework import serializers
+# from django_short_url.urls import
+from rest_framework import serializers, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import status
-from .models import Recipe, Ingredient, IngredientRecipe
+from .models import Recipe, Ingredient, IngredientRecipe, ShoppingCart
 
 
 class Base64ImageField(serializers.ImageField):
@@ -136,10 +137,53 @@ class RecipeSerializer(serializers.ModelSerializer):
             'short-link': short_url
         }, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['post', 'delete'], url_path='shopping_cart')
+    def post_delete_shopping_cart(self, request, pk=None):
+        recipe = get_object_or_404(Recipe, pk=pk)
 
-# def redirect_short_url(request, short_url):
-#     """Перенаправляет короткую ссылку на оригинальный URL."""
-#     url = get_object_or_404(ShortURL, surl=short_url).url
+        user = get_user(request=request)
 
-#     # Получаем оригинальный URL и выполняем перенаправление
-#     return HttpResponseRedirect(url)
+        if request.method == 'POST':
+            note, created = ShoppingCart.objects.get_or_create(
+                user=user, recipe=recipe)
+            if not created:
+                return Response(detail='Рецепт уже в списке покупок!',
+                                status=status.HTTP_400_BAD_REQUEST)
+            return Response(status=status.HTTP_201_CREATED)
+        elif request.method == 'DELETE':
+            count, var = ShoppingCart.objects.filter(
+                user=user, recipe=recipe).delete()
+            if count == 0:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], url_path='download-shopping-cart')
+    def download_cart(self, request):
+        user = get_user(request=request)
+
+        ingredients = {}
+
+        pk_in_cart = ShoppingCart.objects.filter(user=user)
+        for recipe_pk in pk_in_cart:
+            in_recipe = Recipe.objects.get(pk=recipe_pk).ingredients
+            for ingr in in_recipe:
+                product = Ingredient.objects.get(pk=ingr.pk)
+                if product in ingredients.keys:
+                    ingredients[product] += ingr.amount
+                else:
+                    ingredients[product] = ingr.amount
+
+        if len(ingredients) == 0:
+            return Response(detail='Список покупок пуст!',
+                            status=status.HTTP_200_OK)
+
+        # file = open('shoppingcart.txt', 'w')
+        file = StringIO()
+        for ingredient, amount in ingredients:
+            s = f'{ingredient.name} - {amount} {ingredient.measurement_unit}\n'
+            file.write(s)
+
+        return FileResponse(file, as_attachment=True,
+                            filename='shoppingcart.txt')

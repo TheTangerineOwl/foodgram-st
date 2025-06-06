@@ -65,11 +65,14 @@ class Recipe(models.Model):
     author = models.ForeignKey(
         User,
         related_name='recipes',
+        verbose_name=_('Автор'),
         on_delete=models.CASCADE
     )
     ingredients = models.ManyToManyField(
         Ingredient,
         through='IngredientRecipe',
+        related_name='ingredients',
+        verbose_name=_('Игредиенты'),
         blank=False,
     )
     is_favorited = models.BooleanField(
@@ -128,3 +131,34 @@ class IngredientRecipe(models.Model):
                 name='unique_recipe_ingredient'
             )
         ]
+
+
+class ShoppingCart(models.Model):
+    """Модель списка покупок."""
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='users',
+        verbose_name='Пользователь',
+        null=False
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='recipes',
+        verbose_name='Рецепт',
+        null=False
+    )
+
+    class Meta:
+        verbose_name = 'список покупок'
+        verbose_name = 'Списки покупок'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['recipe', 'user'],
+                name='unique_recipe_user'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.recipe} в корзине {self.user}'
