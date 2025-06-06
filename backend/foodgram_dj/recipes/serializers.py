@@ -77,7 +77,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         return obj.is_favorited
 
     def get_is_in_shopping_cart(self, obj):
-        obj.is_in_shopping_cart = False
+        # obj.is_in_shopping_cart = False
 
         return obj.is_in_shopping_cart
 
@@ -149,12 +149,16 @@ class RecipeSerializer(serializers.ModelSerializer):
             if not created:
                 return Response(detail='Рецепт уже в списке покупок!',
                                 status=status.HTTP_400_BAD_REQUEST)
+            recipe.is_in_shopping_cart = True
+            recipe.save()
             return Response(status=status.HTTP_201_CREATED)
         elif request.method == 'DELETE':
             count, var = ShoppingCart.objects.filter(
                 user=user, recipe=recipe).delete()
             if count == 0:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
+            recipe.is_in_shopping_cart = False
+            recipe.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)

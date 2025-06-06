@@ -10,15 +10,43 @@ from django.contrib.auth.models import AbstractUser
 class UserProfile(AbstractUser):
     """Профиль пользователя."""
 
+    email = models.EmailField(
+        unique=True,
+        max_length=254
+    )
+
+    username = models.CharField(
+        max_length=150,
+        unique=True,
+    )
+
+    first_name = models.CharField(
+        max_length=150,
+        blank=True,
+    )
+
+    last_name = models.CharField(
+        max_length=150,
+        blank=True,
+    )
+
     avatar = models.ImageField(
         'Аватар',
         upload_to='users/images',
         null=True,
         default=None
     )
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = [
+        'username',
+        'first_name',
+        'last_name',
+        'password'
+    ]
 
-    class Meta:
+    class Meta(AbstractUser.Meta):
         # Метаданные.
+        db_table = 'auth_user'
         verbose_name = 'профиль пользователя'
         verbose_name_plural = 'Профили пользователей'
 

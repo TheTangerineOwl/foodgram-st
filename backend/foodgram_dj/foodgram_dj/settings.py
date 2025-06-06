@@ -48,14 +48,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework.authtoken',
-    'rest_framework',
-    'djoser',
+    # 'rest_framework',
+    # 'rest_framework.authtoken',
+    # 'djoser',
     'userprofile.apps.UserProfileConfig',
     'api.apps.ApiConfig',
     'recipes.apps.RecipesConfig',
     'django_short_url',
     'django_filters',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'djoser',
 ]
 
 DJANGO_SHORT_URL_REDIRECT_URL = ''
@@ -169,15 +172,24 @@ REST_FRAMEWORK = {
 
 }
 
+# Создаются таблицы в БД для пользователя и регистрация туда попадает,
+# но токены лежат отдельно. Задать сериализаторы для токенов?
 DJOSER = {
-    'LOGIN_FIELD': 'userprofile.models.UserProfile.email',
+    'HIDE_USERS': False,
+    'LOGIN_FIELD': 'email',
+    'PERMISSIONS': {
+        'user': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
+        'user_list': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
+    },
     'SERIALIZERS': {
         'user': 'userprofile.serializers.UserProfileSerializer',
+        'current_user': 'userprofile.serializers.UserProfileSerializer',  # Для /users/me/
+        'user_create': 'userprofile.serializers.UserProfileCreateSerializer',
     },
 }
 
-SIMPLE_JWT = {
-    # Устанавливаем срок жизни токена
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'AUTH_HEADER_TYPES': ('Bearer',),
-}
+# SIMPLE_JWT = {
+#     # Устанавливаем срок жизни токена
+#     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+#     'AUTH_HEADER_TYPES': ('Bearer',),
+# }
