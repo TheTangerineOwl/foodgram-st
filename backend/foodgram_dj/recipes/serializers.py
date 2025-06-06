@@ -37,6 +37,7 @@ class IngredientSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ingredient
+        fields = '__all__'
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -60,7 +61,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     class Meta:
         # Имена для использования в админ-зоне.
         model = Recipe
-        # fields = (, )
+        fields = '__all__'
         # read_only_fields
 
     def get_image_url(self, obj):
@@ -70,14 +71,14 @@ class RecipeSerializer(serializers.ModelSerializer):
         return None
 
     def get_is_favorited(self, obj):
-        is_favorited = False
+        obj.is_favorited = False
 
-        return is_favorited
+        return obj.is_favorited
 
     def get_is_in_shopping_cart(self, obj):
-        is_in_shopping_cart = False
+        obj.is_in_shopping_cart = False
 
-        return is_in_shopping_cart
+        return obj.is_in_shopping_cart
 
     def create(self, validated_data):
         """Валидация и добавление ингредиентов."""

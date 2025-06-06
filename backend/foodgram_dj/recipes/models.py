@@ -11,22 +11,23 @@ User = get_user_model()
 class Ingredient(models.Model):
     """Модель ингредиента в рецепте блюда."""
 
-    class MeasurementUnit(models.TextChoices):
-        """Перечисление возможных единиц измерения для ингредиента."""
+    # class MeasurementUnit(models.TextChoices):
+    #     """Перечисление возможных единиц измерения для ингредиента."""
 
-        KG = 'kilo', _('кг.')
-        GR = 'gr', _('г.')
-        LITER = 'liter', _('л.')
-        ML = 'ml', _('мл.')
-        PIECE = 'pcs', _('шт.')
-        TSP = 'teaspoons', _('ч.л.')
-        SP = 'spoons', _('ст.л.')
+    #     KG = _('кг.')
+    #     GR = _('г.')
+    #     LITER = _('л.')
+    #     ML = _('мл.')
+    #     PIECE = _('шт.')
+    #     TSP = _('ч.л.')
+    #     SP = _('ст.л.')
 
     name = models.CharField(_('Название'), max_length=256)
     measurement_unit = models.CharField(
         _('Единица измерения'),
-        choices=MeasurementUnit.choices,
-        default=MeasurementUnit.GR,
+        # choices=MeasurementUnit.choices,
+        # default=MeasurementUnit.GR,
+        default=_('г.'),
         null=False,
         max_length=30
     )
@@ -34,6 +35,9 @@ class Ingredient(models.Model):
     class Meta:
         verbose_name = _('ингредиент')
         verbose_name_plural = _('Ингредиенты')
+
+    def __str__(self):
+        return self.name + ', ' + self.measurement_unit
 
 
 class Recipe(models.Model):
@@ -66,7 +70,19 @@ class Recipe(models.Model):
     ingredients = models.ManyToManyField(
         Ingredient,
         through='IngredientRecipe',
-        blank=False
+        blank=False,
+    )
+    is_favorited = models.BooleanField(
+        verbose_name=_('В Избранном'),
+        default=False
+    )
+    is_in_shopping_cart = models.BooleanField(
+        verbose_name=_('В Корзине'),
+        default=False
+    )
+    created_at = models.DateTimeField(
+        'Добавлено',
+        auto_now_add=True
     )
 
     class Meta:
@@ -96,7 +112,7 @@ class IngredientRecipe(models.Model):
         blank=False,
         on_delete=models.CASCADE
     )
-    amount = models.FloatField(
+    amount = models.IntegerField(
         _('Количество'),
         blank=False
     )

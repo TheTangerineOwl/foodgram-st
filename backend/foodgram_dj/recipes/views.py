@@ -2,8 +2,7 @@
 # from django.shortcuts import render
 # from .models import Recipe, Ingredient
 
-# Create your views here.
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, filters
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Recipe, Ingredient
@@ -16,17 +15,22 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
+    search_fields = ('name', )
     # pagination_class = None
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """Представление для получения рецепта."""
-    queryset = Recipe.objects.all()
+    queryset = Recipe.objects.all().order_by('created_at')
     serializer_class = RecipeSerializer
     pagination_class = PageNumberPagination
     permission_classes = (AuthorOrReadOnly,)
-    filter_backends = (DjangoFilterBackend,)
-    filterset_fields = ('author', 'is_favorited', 'is_in_shopping_cart')
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
+    # filterset_fields = ('author', )
+    search_fields = ('name',)
+    filterset_fields = ('author',
+                        'name', 'is_in_shopping_cart', 'is_favorited')
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)

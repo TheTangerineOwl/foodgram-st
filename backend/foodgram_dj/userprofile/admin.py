@@ -1,5 +1,6 @@
 """Настройка админ-зоны для приложения userorofile."""
 from django.contrib import admin
-from .models import UserProfile  # , Subscription
+from .models import UserProfile, Subscription
 
-admin.register(UserProfile)
+admin.site.register(UserProfile)
+admin.site.register(Subscription)

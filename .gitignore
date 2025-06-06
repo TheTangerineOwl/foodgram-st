@@ -141,3 +141,6 @@ dmypy.json
 static/
 media/
 infra/.docker-compose-old.yml
+backend/foodgram_dj/clearalldocker.sh
+backend/foodgram_dj/data/ingredients.csv
+backend/foodgram_dj/data/ingredients.json
