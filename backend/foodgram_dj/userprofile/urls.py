@@ -6,6 +6,7 @@ urlpatterns = [
 
     # path('users/subscriptions/'),
     # path('users/<int:pk>/subsribe/'),
-    path('', include('djoser.urls')),
-    path('', include('djoser.urls.jwt')),
+    path('', include('djoser.urls.base')),
+    path('auth/', include('djoser.urls.authtoken')),
+    path('auth/', include('djoser.urls.jwt')),
 ]
