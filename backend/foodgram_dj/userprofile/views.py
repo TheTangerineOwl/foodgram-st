@@ -26,6 +26,19 @@ class UserProfileViewSet(views.UserViewSet):
         """Метод для получения текущего пользователя"""
         return Response(self.get_serializer(request.user).data)
 
+    @action(detail=True, methods=['get'])
+    def get_user(self, request, pk=None):
+        # user = get_object_or_404(UserProfile, pk=pk)
+        user = self.get_object()
+        # is_subscribed = Subscription.objects.filter(
+        #     follows=user.pk,
+        #     user=request.user.pk
+        # ).exists()
+        serializer = self.get_serializer(user)
+        data = serializer.data
+        # data['is_subscribed'] = is_subscribed
+        return Response(data, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=['put', 'delete'], url_path='me/avatar')
     def put_delete_avatar(self, request):
         user = request.user

@@ -33,6 +33,7 @@ class Ingredient(models.Model):
     )
 
     class Meta:
+        ordering = ['name', ]
         verbose_name = _('ингредиент')
         verbose_name_plural = _('Ингредиенты')
 
@@ -138,14 +139,14 @@ class ShoppingCart(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='users',
+        related_name='cart',
         verbose_name='Пользователь',
         null=False
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='recipes',
+        related_name='shopping_carts',
         verbose_name='Рецепт',
         null=False
     )

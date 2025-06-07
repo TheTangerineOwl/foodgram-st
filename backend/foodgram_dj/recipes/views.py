@@ -1,11 +1,16 @@
 """Представления для приложения dishes."""
-# from django.shortcuts import render
-# from .models import Recipe, Ingredient
-
-from rest_framework import viewsets, permissions, filters
+from io import StringIO
+from django.http import FileResponse
+from django.contrib.auth import get_user
+from django.shortcuts import get_object_or_404
+from rest_framework import viewsets, permissions, filters, status
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django_short_url.models import ShortURL
+from django_short_url.views import get_surl
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Recipe, Ingredient
+from .models import Recipe, Ingredient, ShoppingCart
 from .serializers import IngredientSerializer, RecipeSerializer
 from .permissions import AuthorOrReadOnly
 
@@ -34,3 +39,84 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    @action(detail=True, methods=['get'], url_path='get-link')
+    def get_short_link(self, request, pk=None):
+        # recipe = get_object_or_404(Recipe, pk=pk)
+        recipe = self.get_object()
+
+        # Создаем полный URL для рецепта
+        full_url = request.build_absolute_uri(recipe.get_absolute_url())
+
+        short_url, created = ShortURL.objects.get_or_create(lurl=full_url)
+
+        if created or not short_url.surl:
+            short_url.surl = get_surl(short_url.id)  # Генерируем короткий URL
+            short_url.save()
+
+        if not short_url.surl:
+            return Response({'error': 'Short URL generation failed'},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        scheme = 'https' if request.is_secure() else 'http'
+        domain = request.get_host()
+        short_link = request.build_absolute_uri(
+            f'{scheme}://{domain}{short_url.surl}')
+
+        return Response({
+            'short-link': short_link
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post', 'delete'], url_path='shopping_cart')
+    def post_delete_shopping_cart(self, request, pk=None):
+        recipe = get_object_or_404(Recipe, pk=pk)
+
+        user = get_user(request=request)
+
+        if request.method == 'POST':
+            note, created = ShoppingCart.objects.get_or_create(
+                user=user, recipe=recipe)
+            if not created:
+                return Response(detail='Рецепт уже в списке покупок!',
+                                status=status.HTTP_400_BAD_REQUEST)
+            recipe.is_in_shopping_cart = True
+            recipe.save()
+            return Response(status=status.HTTP_201_CREATED)
+        elif request.method == 'DELETE':
+            count, var = ShoppingCart.objects.filter(
+                user=user, recipe=recipe).delete()
+            if count == 0:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            recipe.is_in_shopping_cart = False
+            recipe.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], url_path='download-shopping-cart')
+    def download_cart(self, request):
+        user = get_user(request=request)
+
+        ingredients = {}
+
+        pk_in_cart = ShoppingCart.objects.filter(user=user)
+        for recipe_pk in pk_in_cart:
+            in_recipe = Recipe.objects.get(pk=recipe_pk).ingredients
+            for ingr in in_recipe:
+                product = Ingredient.objects.get(pk=ingr.pk)
+                if product in ingredients.keys:
+                    ingredients[product] += ingr.amount
+                else:
+                    ingredients[product] = ingr.amount
+
+        if len(ingredients) == 0:
+            return Response(detail='Список покупок пуст!',
+                            status=status.HTTP_200_OK)
+
+        # file = open('shoppingcart.txt', 'w')
+        file = StringIO()
+        for ingredient, amount in ingredients:
+            s = f'{ingredient.name} - {amount} {ingredient.measurement_unit}\n'
+            file.write(s)
+
+        return FileResponse(file, as_attachment=True,
+                            filename='shoppingcart.txt')

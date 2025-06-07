@@ -1,36 +1,10 @@
 """Сериализаторы для моделей рецептов и ингредиентов."""
-from base64 import b64decode
-from io import StringIO
-import uuid
-from django.contrib.auth import get_user
-from django.core.files.base import ContentFile
-from django.http import FileResponse
-from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
-from django_short_url.models import ShortURL
-from django_short_url.views import get_surl
 # from django_short_url.urls import
-from rest_framework import serializers, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from .models import Recipe, Ingredient, IngredientRecipe, ShoppingCart
-
-
-class Base64ImageField(serializers.ImageField):
-    """Поле для представления картинки в формате base64."""
-
-    def to_internal_value(self, data):
-        """
-        Переводит представление картинки из base64-строки в указанный формат.
-        """
-        if isinstance(data, str) and data.startswith('data:image'):
-            format, imgstr = data.split(';base64,')
-            ext = format.split('/')[-1]
-
-            filename = f"avatar_{uuid.uuid4().hex[:8]}.{ext}"
-            data = ContentFile(b64decode(imgstr), name=filename)
-
-        return super().to_internal_value(data)
+from rest_framework import serializers
+from .models import Recipe, Ingredient, IngredientRecipe
+from image64conv.serializers import Base64ImageField
+from userprofile.serializers import UserProfileSerializer
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -46,6 +20,7 @@ class IngredientSerializer(serializers.ModelSerializer):
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для рецептов."""
 
+    author = UserProfileSerializer(read_only=True)
     ingredients = IngredientSerializer(many=True, required=True)
     image = Base64ImageField(required=False, allow_null=True)
     image_url = serializers.SerializerMethodField(
@@ -79,9 +54,11 @@ class RecipeSerializer(serializers.ModelSerializer):
         return obj.is_favorited
 
     def get_is_in_shopping_cart(self, obj):
-        # obj.is_in_shopping_cart = False
-
-        return obj.is_in_shopping_cart
+        # return obj.is_in_shopping_cart
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.shopping_carts.filter(user=request.user).exists()
 
     def create(self, validated_data):
         """Валидация и добавление ингредиентов."""
@@ -125,71 +102,3 @@ class RecipeSerializer(serializers.ModelSerializer):
         instance.achievements.set(lst)
         instance.save()
         return instance
-
-    @action(detail=True, methods=['get'], url_path='get-link')
-    def get_short_link(self, request, pk=None):
-        recipe = get_object_or_404(Recipe, pk=pk)
-
-        # Создаем полный URL для рецепта
-        full_url = request.build_absolute_uri(recipe.get_absolute_url())
-
-        short_url, created = ShortURL.objects.get_or_create(url=full_url)
-        # Возвращаем короткую ссылку
-        return Response({
-            'short-link': short_url
-        }, status=status.HTTP_200_OK)
-
-    @action(detail=True, methods=['post', 'delete'], url_path='shopping_cart')
-    def post_delete_shopping_cart(self, request, pk=None):
-        recipe = get_object_or_404(Recipe, pk=pk)
-
-        user = get_user(request=request)
-
-        if request.method == 'POST':
-            note, created = ShoppingCart.objects.get_or_create(
-                user=user, recipe=recipe)
-            if not created:
-                return Response(detail='Рецепт уже в списке покупок!',
-                                status=status.HTTP_400_BAD_REQUEST)
-            recipe.is_in_shopping_cart = True
-            recipe.save()
-            return Response(status=status.HTTP_201_CREATED)
-        elif request.method == 'DELETE':
-            count, var = ShoppingCart.objects.filter(
-                user=user, recipe=recipe).delete()
-            if count == 0:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            recipe.is_in_shopping_cart = False
-            recipe.save()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=False, methods=['get'], url_path='download-shopping-cart')
-    def download_cart(self, request):
-        user = get_user(request=request)
-
-        ingredients = {}
-
-        pk_in_cart = ShoppingCart.objects.filter(user=user)
-        for recipe_pk in pk_in_cart:
-            in_recipe = Recipe.objects.get(pk=recipe_pk).ingredients
-            for ingr in in_recipe:
-                product = Ingredient.objects.get(pk=ingr.pk)
-                if product in ingredients.keys:
-                    ingredients[product] += ingr.amount
-                else:
-                    ingredients[product] = ingr.amount
-
-        if len(ingredients) == 0:
-            return Response(detail='Список покупок пуст!',
-                            status=status.HTTP_200_OK)
-
-        # file = open('shoppingcart.txt', 'w')
-        file = StringIO()
-        for ingredient, amount in ingredients:
-            s = f'{ingredient.name} - {amount} {ingredient.measurement_unit}\n'
-            file.write(s)
-
-        return FileResponse(file, as_attachment=True,
-                            filename='shoppingcart.txt')

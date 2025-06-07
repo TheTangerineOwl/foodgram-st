@@ -2,7 +2,7 @@
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import serializers, status
-from recipes.serializers import Base64ImageField
+from image64conv.serializers import Base64ImageField
 from djoser.serializers import UserSerializer, UserCreateSerializer
 from .models import UserProfile, Subscription
 
@@ -50,9 +50,11 @@ class UserProfileSerializer(UserSerializer):
         """
         Получает значение, подписан ли текущий пользователь на выбранного.
         """
-        current_user = self.get_current_user()
-        return Subscription.objects.filter(
-            user=current_user, follows=obj).exists()
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return Subscription.objects.filter(user=request.user,
+                                           follows=obj).exists()
 
 
 class UserProfileCreateSerializer(UserCreateSerializer):
