@@ -10,18 +10,37 @@ from userprofile.serializers import UserProfileSerializer
 class IngredientSerializer(serializers.ModelSerializer):
     """Сериализатор для ингредиентов."""
 
-    ingredient_name = serializers.CharField(source='name')
+    # ingredient_name = serializers.CharField(source='name')
 
     class Meta:
         model = Ingredient
         fields = '__all__'
 
 
+class IngredientRecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор для ингредиентов."""
+
+    id = serializers.IntegerField(source='ingredient.id')
+    name = serializers.CharField(source='ingredient.name')
+    measurement_unit = serializers.CharField(
+        source='ingredient.measurement_unit')
+
+    class Meta:
+        model = IngredientRecipe
+        fields = ('id', 'name', 'measurement_unit', 'amount')
+
+
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для рецептов."""
 
     author = UserProfileSerializer(read_only=True)
-    ingredients = IngredientSerializer(many=True, required=True)
+    # ingredients = IngredientSerializer(many=True, required=True)
+    # ingredients = IngredientRecipeSerializer(many=True, required=True)
+
+    ingredients = IngredientRecipeSerializer(
+        many=True,
+        source='ingredientrecipe_set'
+    )
     image = Base64ImageField(required=False, allow_null=True)
     image_url = serializers.SerializerMethodField(
         'get_image_url',
@@ -62,43 +81,35 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Валидация и добавление ингредиентов."""
-        if 'ingredients' not in self.initial_data:
-            raise serializers.ValidationError(
-                _('Поле "ингредиенты" не может быть пустым!')
-            )
-        ingredients = validated_data.pop('ingredients')
+        ingredients_data = self.initial_data.get('ingredients', [])
         recipe = Recipe.objects.create(**validated_data)
-        for ingredient in ingredients:
-            current_ingredient, status = Ingredient.objects.get_or_create(
-                **ingredient
-            )
+
+        for ingredient_data in ingredients_data:
             IngredientRecipe.objects.create(
-                ingredient=current_ingredient, recipe=recipe
+                recipe=recipe,
+                ingredient_id=ingredient_data['id'],
+                amount=ingredient_data['amount']
             )
         return recipe
 
     def update(self, instance, validated_data):
         """Валидация данных при обновлении."""
+        ingredients_data = self.initial_data.get('ingredients', [])
+
+        # Обновляем основные поля
         instance.name = validated_data.get('name', instance.name)
         instance.text = validated_data.get('text', instance.text)
-        instance.cooking_time = validated_data.get(
-            'cooking_time',
-            instance.cooking_time
-        )
+        instance.cooking_time = validated_data.get('cooking_time',
+                                                   instance.cooking_time)
         instance.image = validated_data.get('image', instance.image)
-
-        if 'ingredients' not in validated_data:
-            raise serializers.ValidationError(
-                _('Поле "Ингредиенты" не может быть пустым!')
-            )
-
-        ingredients_data = validated_data.pop('ingredients')
-        lst = []
-        for ingredient in ingredients_data:
-            current, status = Ingredient.objects.get_or_create(
-                **ingredient
-            )
-            lst.append(current)
-        instance.achievements.set(lst)
         instance.save()
+
+        # Обновляем ингредиенты
+        instance.ingredients.clear()
+        for ingredient_data in ingredients_data:
+            IngredientRecipe.objects.create(
+                recipe=instance,
+                ingredient_id=ingredient_data['id'],
+                amount=ingredient_data['amount']
+            )
         return instance

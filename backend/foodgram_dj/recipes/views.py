@@ -1,5 +1,6 @@
 """Представления для приложения dishes."""
-from io import StringIO
+from io import BytesIO
+from django.db.models import Sum
 from django.http import FileResponse
 from django.contrib.auth import get_user
 from django.shortcuts import get_object_or_404
@@ -10,7 +11,7 @@ from rest_framework.response import Response
 from django_short_url.models import ShortURL
 from django_short_url.views import get_surl
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Recipe, Ingredient, ShoppingCart
+from .models import Recipe, Ingredient, ShoppingCart, IngredientRecipe
 from .serializers import IngredientSerializer, RecipeSerializer
 from .permissions import AuthorOrReadOnly
 
@@ -76,8 +77,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
             note, created = ShoppingCart.objects.get_or_create(
                 user=user, recipe=recipe)
             if not created:
-                return Response(detail='Рецепт уже в списке покупок!',
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response({
+                                'message': 'Рецепт уже в списке покупок!',
+                                'data': []
+                                }, status=status.HTTP_400_BAD_REQUEST)
             recipe.is_in_shopping_cart = True
             recipe.save()
             return Response(status=status.HTTP_201_CREATED)
@@ -92,31 +95,47 @@ class RecipeViewSet(viewsets.ModelViewSet):
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['get'], url_path='download-shopping-cart')
+    @action(detail=False, methods=['get'], url_path='download_shopping_cart')
     def download_cart(self, request):
-        user = get_user(request=request)
+        user = request.user
 
-        ingredients = {}
+        # Получаем все ингредиенты из корзины с суммированием количества
+        cart_items = IngredientRecipe.objects.filter(
+            recipe__shopping_carts__user=user
+        ).values(
+            'ingredient__name',
+            'ingredient__measurement_unit'
+        ).annotate(
+            total_amount=Sum('amount')
+        ).order_by('ingredient__name')
 
-        pk_in_cart = ShoppingCart.objects.filter(user=user)
-        for recipe_pk in pk_in_cart:
-            in_recipe = Recipe.objects.get(pk=recipe_pk).ingredients
-            for ingr in in_recipe:
-                product = Ingredient.objects.get(pk=ingr.pk)
-                if product in ingredients.keys:
-                    ingredients[product] += ingr.amount
-                else:
-                    ingredients[product] = ingr.amount
+        if not cart_items.exists():
+            return Response({
+                'message': 'Ваша корзина покупок пуста',
+                'status': 'success'
+            }, status=status.HTTP_200_OK)
 
-        if len(ingredients) == 0:
-            return Response(detail='Список покупок пуст!',
-                            status=status.HTTP_200_OK)
+        # Формируем текстовый файл
+        file_content = BytesIO()
 
-        # file = open('shoppingcart.txt', 'w')
-        file = StringIO()
-        for ingredient, amount in ingredients:
-            s = f'{ingredient.name} - {amount} {ingredient.measurement_unit}\n'
-            file.write(s)
+        line = ''
 
-        return FileResponse(file, as_attachment=True,
-                            filename='shoppingcart.txt')
+        for item in cart_items:
+            line += (
+                f"{item['ingredient__name']} - "
+                f"{item['total_amount']} "
+                f"{item['ingredient__measurement_unit']}\n"
+            )
+        # file_content.write(line.encode('utf-8'))
+        file_content.write(line.encode('utf-8'))
+
+        # Подготавливаем файл для скачивания
+        file_content.seek(0)
+        response = FileResponse(
+            file_content,
+            content_type='text/plain',
+            as_attachment=True,
+            filename='shopping_list.txt'
+        )
+
+        return response
