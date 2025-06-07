@@ -2,6 +2,7 @@
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import viewsets, pagination, mixins, permissions, status
+from djoser import views
 from .models import UserProfile, Subscription
 from .serializers import UserProfileSerializer, SubscriptionSerializer
 
@@ -14,10 +15,11 @@ class SubscriptionViewSet(viewsets.GenericViewSet,
     permission_classes = (permissions.IsAuthenticated, )
 
 
-class UserProfileViewSet(viewsets.ModelViewSet):
+class UserProfileViewSet(views.UserViewSet):
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
     pagination_class = pagination.LimitOffsetPagination
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, ]
 
     @action(detail=False, methods=['get'], url_path='me')
     def get_current_user(self, request):

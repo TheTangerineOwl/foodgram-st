@@ -180,6 +180,7 @@ DJOSER = {
     'PERMISSIONS': {
         'user': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
         'user_list': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
+        'set_password': ['rest_framework.permissions.IsAuthenticated'],
     },
     'SERIALIZERS': {
         'user': 'userprofile.serializers.UserProfileSerializer',
