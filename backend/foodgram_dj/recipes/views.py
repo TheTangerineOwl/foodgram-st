@@ -11,7 +11,8 @@ from rest_framework.response import Response
 from django_short_url.models import ShortURL
 from django_short_url.views import get_surl
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Recipe, Ingredient, ShoppingCart, IngredientRecipe
+from .models import (Recipe, Ingredient, ShoppingCart,
+                     IngredientRecipe, Favorites)
 from .serializers import IngredientSerializer, RecipeSerializer
 from .permissions import AuthorOrReadOnly
 
@@ -20,10 +21,11 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     """Представление для получения одного ингредиента или списка по поиску."""
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
+    pagination_class = None
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
-    search_fields = ('name', )
-    # pagination_class = None
+    filterset_fields = ('name', )
+    search_fields = ('^name', )
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -83,7 +85,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
                                 }, status=status.HTTP_400_BAD_REQUEST)
             recipe.is_in_shopping_cart = True
             recipe.save()
-            return Response(status=status.HTTP_201_CREATED)
+            serializer = RecipeSerializer(recipe)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         elif request.method == 'DELETE':
             count, var = ShoppingCart.objects.filter(
                 user=user, recipe=recipe).delete()
@@ -139,3 +142,32 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
 
         return response
+
+    @action(detail=True, methods=['post', 'delete'], url_path='favorite')
+    def post_delete_favorite(self, request, pk=None):
+        recipe = get_object_or_404(Recipe, pk=pk)
+
+        user = get_user(request=request)
+
+        if request.method == 'POST':
+            note, created = Favorites.objects.get_or_create(
+                user=user, recipe=recipe)
+            if not created:
+                return Response({
+                                'message': 'Рецепт уже в списке Избранного!',
+                                'data': []
+                                }, status=status.HTTP_400_BAD_REQUEST)
+            recipe.is_favorited = True
+            recipe.save()
+            serializer = RecipeSerializer(recipe)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        elif request.method == 'DELETE':
+            count, var = Favorites.objects.filter(
+                user=user, recipe=recipe).delete()
+            if count == 0:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            recipe.is_favorited = False
+            recipe.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)

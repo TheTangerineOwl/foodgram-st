@@ -2,7 +2,7 @@
 from django.utils.translation import gettext_lazy as _
 # from django_short_url.urls import
 from rest_framework import serializers
-from .models import Recipe, Ingredient, IngredientRecipe
+from .models import Recipe, Ingredient, IngredientRecipe, Favorites
 from image64conv.serializers import Base64ImageField
 from userprofile.serializers import UserProfileSerializer
 
@@ -34,8 +34,6 @@ class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для рецептов."""
 
     author = UserProfileSerializer(read_only=True)
-    # ingredients = IngredientSerializer(many=True, required=True)
-    # ingredients = IngredientRecipeSerializer(many=True, required=True)
 
     ingredients = IngredientRecipeSerializer(
         many=True,
@@ -68,9 +66,10 @@ class RecipeSerializer(serializers.ModelSerializer):
         return None
 
     def get_is_favorited(self, obj):
-        obj.is_favorited = False
-
-        return obj.is_favorited
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.user_favs.filter(user=request.user).exists()
 
     def get_is_in_shopping_cart(self, obj):
         # return obj.is_in_shopping_cart

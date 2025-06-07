@@ -11,22 +11,9 @@ User = get_user_model()
 class Ingredient(models.Model):
     """Модель ингредиента в рецепте блюда."""
 
-    # class MeasurementUnit(models.TextChoices):
-    #     """Перечисление возможных единиц измерения для ингредиента."""
-
-    #     KG = _('кг.')
-    #     GR = _('г.')
-    #     LITER = _('л.')
-    #     ML = _('мл.')
-    #     PIECE = _('шт.')
-    #     TSP = _('ч.л.')
-    #     SP = _('ст.л.')
-
     name = models.CharField(_('Название'), max_length=256)
     measurement_unit = models.CharField(
         _('Единица измерения'),
-        # choices=MeasurementUnit.choices,
-        # default=MeasurementUnit.GR,
         default=_('г.'),
         null=False,
         max_length=30
@@ -103,7 +90,6 @@ class Recipe(models.Model):
 
 class IngredientRecipe(models.Model):
     """Модель для связи рецепта и его ингредиента."""
-    # pk = models.CompositePrimaryKey("recipe", "ingredient")
     recipe = models.ForeignKey(
         Recipe,
         verbose_name=_('Рецепт'),
@@ -163,3 +149,34 @@ class ShoppingCart(models.Model):
 
     def __str__(self):
         return f'{self.recipe} в корзине {self.user}'
+
+
+class Favorites(models.Model):
+    """Модель списка избранных рецептов."""
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='favs',
+        verbose_name='Пользователь',
+        null=False
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='user_favs',
+        verbose_name='Рецепт',
+        null=False
+    )
+
+    class Meta:
+        verbose_name = 'избранное'
+        verbose_name = 'Избранное'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['recipe', 'user'],
+                name='unique_recipe_user_fav'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.recipe} в избранном {self.user}'
