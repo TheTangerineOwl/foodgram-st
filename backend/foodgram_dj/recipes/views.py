@@ -13,8 +13,10 @@ from django_short_url.views import get_surl
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import (Recipe, Ingredient, ShoppingCart,
                      IngredientRecipe, Favorites)
-from .serializers import IngredientSerializer, RecipeSerializer
+from .serializers import (IngredientSerializer,
+                          RecipeSerializer)
 from .permissions import AuthorOrReadOnly
+from .filters import RecipeFilter
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -27,6 +29,13 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ('name', )
     search_fields = ('^name', )
 
+    def get_queryset(self):
+        """Метод для получения ингредиентов по имени"""
+        name = self.request.query_params.get('name')
+        if name:
+            return self.queryset.filter(name__istartswith=name.lower())
+        return self.queryset
+
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """Представление для получения рецепта."""
@@ -35,10 +44,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = (AuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
-    # filterset_fields = ('author', )
     search_fields = ('name',)
-    filterset_fields = ('author',
-                        'name', 'is_in_shopping_cart', 'is_favorited')
+    filterset_fields = ('name', )
+    filterset_class = RecipeFilter
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -83,7 +91,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                                 'message': 'Рецепт уже в списке покупок!',
                                 'data': []
                                 }, status=status.HTTP_400_BAD_REQUEST)
-            recipe.is_in_shopping_cart = True
+            # recipe.is_in_shopping_cart = True
             recipe.save()
             serializer = RecipeSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -92,7 +100,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 user=user, recipe=recipe).delete()
             if count == 0:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
-            recipe.is_in_shopping_cart = False
+            # recipe.is_in_shopping_cart = False
             recipe.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
@@ -157,7 +165,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                                 'message': 'Рецепт уже в списке Избранного!',
                                 'data': []
                                 }, status=status.HTTP_400_BAD_REQUEST)
-            recipe.is_favorited = True
+            # recipe.is_favorited = True
             recipe.save()
             serializer = RecipeSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -166,7 +174,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 user=user, recipe=recipe).delete()
             if count == 0:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
-            recipe.is_favorited = False
+            # recipe.is_favorited = False
             recipe.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:

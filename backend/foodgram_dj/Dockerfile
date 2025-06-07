@@ -11,6 +11,7 @@ python manage.py migrate\n\
 # Собираем статику\n\
 python manage.py collectstatic --no-input\n\
 mv /app/collected_static/admin /app/collected_static/static/ \n\
+mv /app/collected_static/rest_framework /app/collected_static/static/ \n\
 # Запускаем Gunicorn\n\
 exec gunicorn --bind 0.0.0.0:8000 foodgram_dj.wsgi:application\n\
 " > /entrypoint.sh && \

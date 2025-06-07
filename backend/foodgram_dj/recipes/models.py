@@ -59,17 +59,10 @@ class Recipe(models.Model):
     ingredients = models.ManyToManyField(
         Ingredient,
         through='IngredientRecipe',
-        related_name='ingredients',
         verbose_name=_('Игредиенты'),
+        related_name='recipes',  # для доступа из ингредиента
+        through_fields=('recipe', 'ingredient'),
         blank=False,
-    )
-    is_favorited = models.BooleanField(
-        verbose_name=_('В Избранном'),
-        default=False
-    )
-    is_in_shopping_cart = models.BooleanField(
-        verbose_name=_('В Корзине'),
-        default=False
     )
     created_at = models.DateTimeField(
         'Добавлено',
@@ -118,6 +111,7 @@ class IngredientRecipe(models.Model):
                 name='unique_recipe_ingredient'
             )
         ]
+        default_related_name = 'recipe_ingredients'
 
 
 class ShoppingCart(models.Model):
