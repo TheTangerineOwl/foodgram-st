@@ -1,6 +1,7 @@
 """Сериализаторы для моделей рецептов и ингредиентов."""
 from base64 import b64decode
 from io import StringIO
+import uuid
 from django.contrib.auth import get_user
 from django.core.files.base import ContentFile
 from django.http import FileResponse
@@ -26,7 +27,8 @@ class Base64ImageField(serializers.ImageField):
             format, imgstr = data.split(';base64,')
             ext = format.split('/')[-1]
 
-            data = ContentFile(b64decode(imgstr), name='temp.' + ext)
+            filename = f"avatar_{uuid.uuid4().hex[:8]}.{ext}"
+            data = ContentFile(b64decode(imgstr), name=filename)
 
         return super().to_internal_value(data)
 

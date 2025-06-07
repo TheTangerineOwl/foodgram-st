@@ -25,13 +25,9 @@ services:
     container_name: foodgram-back
     build: ../backend/foodgram_dj/
     env_file: .env
-    #volumes:
-    #  - ../backend/:/app/collected_static/
     volumes:
-      #- static:/backend_static
-      - static:/usr/share/nginx/html/
-      #- media:/media
-      - media:/usr/share/nginx/html/media/
+      - static:/app/collected_static/
+      - media:/app/media/
     depends_on:
       db:
         condition: service_healthy
@@ -61,4 +57,4 @@ services:
       #- static:/staticfiles
       #- media:/media
       - static:/usr/share/nginx/html/
-      - media:/usr/share/nginx/html/media
+      - media:/usr/share/nginx/html/media/

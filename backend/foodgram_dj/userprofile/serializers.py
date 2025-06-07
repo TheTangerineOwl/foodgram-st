@@ -1,6 +1,7 @@
 """Сериализаторы для модели профиля пользователя."""
 from rest_framework.decorators import action
-from rest_framework import serializers
+from rest_framework.response import Response
+from rest_framework import serializers, status
 from recipes.serializers import Base64ImageField
 from djoser.serializers import UserSerializer, UserCreateSerializer
 from .models import UserProfile, Subscription
@@ -12,7 +13,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         # Метаданные.
         model = Subscription
-        read_only_field = ('user', 'follower')
+        read_only_field = ('user', 'follows')
 
 
 class UserProfileSerializer(UserSerializer):
@@ -53,14 +54,6 @@ class UserProfileSerializer(UserSerializer):
         return Subscription.objects.filter(
             user=current_user, follows=obj).exists()
 
-    @action(detail=True, methods=['put', 'delete'], url_path='avatar')
-    def delete_avatar(self, instance, validated_data=None):
-        instance.avatar = None
-        if validated_data:
-            instance.avatar = validated_data.get('avatar', instance.avatar)
-        instance.save()
-        return instance
-
 
 class UserProfileCreateSerializer(UserCreateSerializer):
     """Сериализатор для регистрации пользователя."""
@@ -68,4 +61,4 @@ class UserProfileCreateSerializer(UserCreateSerializer):
     class Meta(UserCreateSerializer.Meta):
         model = UserProfile
         fields = ('id', 'email', 'username', 'password',
-                  'first_name', 'last_name', 'avatar')
+                  'first_name', 'last_name')
