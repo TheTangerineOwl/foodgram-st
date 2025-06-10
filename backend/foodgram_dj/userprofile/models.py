@@ -56,12 +56,14 @@ class Subscription(models.Model):
 
     user = models.ForeignKey(
         UserProfile,
-        related_name='Пользователь',
+        verbose_name='Пользователь',
+        related_name='subscriber',
         on_delete=models.CASCADE
     )
     follows = models.ForeignKey(
         UserProfile,
-        related_name='Подписка',
+        verbose_name='Подписка',
+        related_name='subbed_to',
         on_delete=models.CASCADE
     )
 

@@ -2,9 +2,10 @@
 from io import BytesIO
 from django.db.models import Sum
 from django.http import FileResponse
-from django.contrib.auth import get_user
+from django.contrib.auth import get_user, get_user_model
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets, permissions, filters, status
+from rest_framework import (viewsets, permissions, filters,
+                            status, mixins, pagination)
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -14,9 +15,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import (Recipe, Ingredient, ShoppingCart,
                      IngredientRecipe, Favorites)
 from .serializers import (IngredientSerializer,
-                          RecipeSerializer)
+                          RecipeSerializer, SubscriptionSerializer)
 from .permissions import AuthorOrReadOnly
 from .filters import RecipeFilter
+
+
+User = get_user_model()
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -84,7 +88,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def post_delete_shopping_cart(self, request, pk=None):
         recipe = get_object_or_404(Recipe, pk=pk)
 
-        user = get_user(request=request)
+        user = request.user
+        if not user.is_authenticated:
+            return Response(
+                {'error': 'Authentication required'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
         if request.method == 'POST':
             note, created = ShoppingCart.objects.get_or_create(
@@ -164,7 +173,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def post_delete_favorite(self, request, pk=None):
         recipe = get_object_or_404(Recipe, pk=pk)
 
-        user = get_user(request=request)
+        user = request.user
+        if not user.is_authenticated:
+            return Response(
+                {'error': 'Authentication required'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
         if request.method == 'POST':
             note, created = Favorites.objects.get_or_create(
@@ -188,3 +202,25 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+class SubscriptionViewSet(viewsets.GenericViewSet,
+                          mixins.ListModelMixin):
+    serializer_class = SubscriptionSerializer
+    pagination_class = pagination.LimitOffsetPagination
+    permission_classes = (permissions.IsAuthenticated, )
+
+    def get_queryset(self):
+        return User.objects.filter(
+            subbed_by__user=self.request.user
+        ).prefetch_related('recipes')
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)

@@ -70,6 +70,7 @@ class Recipe(models.Model):
     )
 
     class Meta:
+        ordering = ['-created_at']
         verbose_name = _('рецепт')
         verbose_name_plural = _('Рецепты')
 

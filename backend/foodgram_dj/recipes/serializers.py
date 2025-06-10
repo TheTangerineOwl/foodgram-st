@@ -1,6 +1,6 @@
 """Сериализаторы для моделей рецептов и ингредиентов."""
+from django.core.paginator import Paginator
 from django.utils.translation import gettext_lazy as _
-# from django_short_url.urls import
 from rest_framework import serializers
 from .models import Recipe, Ingredient, IngredientRecipe, Favorites
 from image64conv.serializers import Base64ImageField
@@ -59,6 +59,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         # Имена для использования в админ-зоне.
         model = Recipe
         fields = '__all__'
+        # exclude = ('image_url')
         # read_only_fields
 
     def get_ingredients(self, obj):
@@ -122,16 +123,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredient_ids = [item['id'] for item in ingredients_data]
         ingredients = Ingredient.objects.in_bulk(ingredient_ids)
 
-        # Создаем связи с ингредиентами
-        ingredient_recipe_objects = [
-            IngredientRecipe(
-                recipe=recipe,
-                ingredient=ingredients[ingredient_data['id']],
-                amount=ingredient_data['amount']
-            )
-            for ingredient_data in ingredients_data
-        ]
-        IngredientRecipe.objects.bulk_create(ingredient_recipe_objects)
+        self._create_ingredients(recipe=recipe,
+                                 ingredients_data=ingredients)
 
         return recipe
 
@@ -146,8 +139,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         # Обновляем ингредиенты, если они переданы
         if ingredients_data is not None:
-            instance.recipe_ingredients.all().delete()
-            self._create_ingredients(instance, ingredients_data)
+            self._update_ingredients(instance, ingredients_data)
 
         return instance
 
@@ -169,3 +161,41 @@ class RecipeSerializer(serializers.ModelSerializer):
         recipe.recipe_ingredients.all().delete()
         # Создаем новые
         self._create_ingredients(recipe, ingredients_data)
+
+
+class ShortRecipeSerializer(serializers.ModelSerializer):
+    # id, name, image, image_url, cooking_time
+    image = Base64ImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+
+
+class SubscriptionSerializer(UserProfileSerializer):
+    """Расширяет UserSerializer полями recipes и recipes_count."""
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
+
+    class Meta(UserProfileSerializer.Meta):
+        fields = '__all__'
+        # fields = (*UserProfileSerializer.Meta.fields,
+        #           'recipes',
+        #           'recipes_count',)
+
+    def get_recipes(self, obj):
+        request = self.context.get('request')
+        recipes = obj.recipes.all()  # Рецепты пользователя (follows)
+
+        recipes_limit = request.query_params.get('recipes_limit')
+        if recipes_limit:
+            recipes_limit = int(recipes_limit)
+            paginator = Paginator(recipes, recipes_limit)
+            recipes = paginator.page(1).object_list
+
+        return ShortRecipeSerializer(recipes,
+                                     many=True,
+                                     context=self.context).data
+
+    def get_recipes_count(self, obj):
+        return obj.recipes.count()

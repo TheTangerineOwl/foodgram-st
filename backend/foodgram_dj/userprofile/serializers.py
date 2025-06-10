@@ -1,19 +1,8 @@
 """Сериализаторы для модели профиля пользователя."""
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework import serializers, status
+from rest_framework import serializers
 from image64conv.serializers import Base64ImageField
 from djoser.serializers import UserSerializer, UserCreateSerializer
 from .models import UserProfile, Subscription
-
-
-class SubscriptionSerializer(serializers.ModelSerializer):
-    """Сериализатор для подписок."""
-
-    class Meta:
-        # Метаданные.
-        model = Subscription
-        read_only_field = ('user', 'follows')
 
 
 class UserProfileSerializer(UserSerializer):

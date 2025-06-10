@@ -1,18 +1,15 @@
 # from djoser.views import UserViewSet
+from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.validators import ValidationError
 from rest_framework import viewsets, pagination, mixins, permissions, status
 from djoser import views
 from .models import UserProfile, Subscription
-from .serializers import UserProfileSerializer, SubscriptionSerializer
+from .serializers import UserProfileSerializer  #, SubscriptionSerializer
 
 
-class SubscriptionViewSet(viewsets.GenericViewSet,
-                          mixins.CreateModelMixin,
-                          mixins.DestroyModelMixin):
-    queryset = Subscription.objects.all()
-    serializer_class = SubscriptionSerializer
-    permission_classes = (permissions.IsAuthenticated, )
+
 
 
 class UserProfileViewSet(views.UserViewSet):
@@ -62,3 +59,29 @@ class UserProfileViewSet(views.UserViewSet):
             {'message': 'Аватар успешно удалён'},
             status=status.HTTP_204_NO_CONTENT
         )
+
+    @action(detail=True, methods=['post', 'delete'], url_path='subscribe')
+    def sub_and_unsub(self, request, id=None):
+        """Метод для создания и удаления подписки на авторов"""
+        to_sub = get_object_or_404(UserProfile, pk=id)
+
+        if request.method == 'POST':
+            if to_sub == request.user:
+                raise ValidationError(
+                    {'error': 'Нельзя подписаться на самого себя!'}
+                )
+            sub, created = Subscription.objects.get_or_create(
+                user=request.user,
+                follows=to_sub
+            )
+            if not created:
+                raise ValidationError({'error': 'Подписка уже есть!'})
+            return Response(
+                UserProfileSerializer(sub.follows).data,
+                status=status.HTTP_201_CREATED
+            )
+
+        get_object_or_404(Subscription, user=request.user, follows=to_sub
+                          ).delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
