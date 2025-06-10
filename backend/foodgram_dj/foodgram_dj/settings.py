@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
-from datetime import timedelta
 import dotenv
 import os
 
@@ -180,9 +179,3 @@ DJOSER = {
         'user_create': 'userprofile.serializers.UserProfileCreateSerializer',
     },
 }
-
-# SIMPLE_JWT = {
-#     # Устанавливаем срок жизни токена
-#     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-#     'AUTH_HEADER_TYPES': ('Bearer',),
-# }

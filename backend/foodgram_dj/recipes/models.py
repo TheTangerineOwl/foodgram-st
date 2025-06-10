@@ -79,7 +79,7 @@ class Recipe(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('recipe-detail', kwargs={'pk': self.pk})
+        return reverse('recipes-detail', kwargs={'pk': self.pk})
 
 
 class IngredientRecipe(models.Model):
@@ -87,6 +87,7 @@ class IngredientRecipe(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         verbose_name=_('Рецепт'),
+        related_name='recipe_ingredients',
         blank=False,
         on_delete=models.CASCADE
     )
@@ -96,7 +97,7 @@ class IngredientRecipe(models.Model):
         blank=False,
         on_delete=models.CASCADE
     )
-    amount = models.IntegerField(
+    amount = models.PositiveIntegerField(
         _('Количество'),
         blank=False
     )
@@ -112,7 +113,7 @@ class IngredientRecipe(models.Model):
                 name='unique_recipe_ingredient'
             )
         ]
-        default_related_name = 'recipe_ingredients'
+        # default_related_name = 'recipe_ingredients'
 
 
 class ShoppingCart(models.Model):

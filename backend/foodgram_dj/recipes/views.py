@@ -2,7 +2,7 @@
 from io import BytesIO
 from django.db.models import Sum
 from django.http import FileResponse
-from django.contrib.auth import get_user, get_user_model
+from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import (viewsets, permissions, filters,
                             status, mixins, pagination)
@@ -43,7 +43,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """Представление для получения рецепта."""
-    queryset = Recipe.objects.all().order_by('-created_at')
+    # queryset = Recipe.objects.all().order_by('-created_at')
     serializer_class = RecipeSerializer
     pagination_class = PageNumberPagination
     permission_classes = (AuthorOrReadOnly,)
@@ -51,6 +51,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
     search_fields = ('name',)
     filterset_fields = ('name', )
     filterset_class = RecipeFilter
+
+    def get_queryset(self):
+        return Recipe.objects.select_related('author').prefetch_related(
+            'recipe_ingredients__ingredient',
+            'user_favs',
+            'shopping_carts'
+        ).order_by('-created_at')
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -212,7 +219,7 @@ class SubscriptionViewSet(viewsets.GenericViewSet,
 
     def get_queryset(self):
         return User.objects.filter(
-            subbed_by__user=self.request.user
+            subbed_to__user=self.request.user
         ).prefetch_related('recipes')
 
     def list(self, request, *args, **kwargs):

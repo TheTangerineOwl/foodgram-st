@@ -13,15 +13,18 @@ class UserProfileSerializer(UserSerializer):
         read_only=True
     )
     avatar = Base64ImageField(required=False, allow_null=True)
-    avatar_url = serializers.SerializerMethodField(
-        'get_avatar_url',
-        read_only=True,
-    )
+    # avatar_url = serializers.SerializerMethodField(
+    #     'get_avatar_url',
+    #     read_only=True,
+    # )
 
     class Meta(UserSerializer.Meta):
         # Метаданные
         model = UserProfile
-        fields = '__all__'
+        fields = ['id', 'email',
+                  'username', 'first_name',
+                  'last_name', 'is_subscribed',
+                  'avatar']
 
     def get_avatar_url(self, obj):
         """Получение ссылки на картинку-аватар."""
@@ -40,7 +43,9 @@ class UserProfileSerializer(UserSerializer):
         Получает значение, подписан ли текущий пользователь на выбранного.
         """
         request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
+        if (not request
+           or not request.user.is_authenticated
+           or obj == request.user):
             return False
         return Subscription.objects.filter(user=request.user,
                                            follows=obj).exists()
