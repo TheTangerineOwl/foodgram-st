@@ -18,23 +18,18 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_DIR = Path(__file__).resolve().parent.parent.parent.parent
-#dotenv_file = os.path.join(PROJECT_DIR, "infra", ".env")
-dotenv_file = os.path.join(BASE_DIR, ".env")
-if os.path.isfile(dotenv_file):
-    dotenv.load_dotenv(dotenv_file)
+dotenv.load_dotenv()
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = 'django-insecure-4!x6dwh2raq@fqkc)x)=f)-ocpprws(tgog^jd9t$v=^_c@5jh'
 SECRET_KEY = os.environ['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', False)
 
-ALLOWED_HOSTS = []
-# ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', ['127.0.0.1',])
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost 127.0.0.1').split()
 
 # Получение дополненной модели пользователя в качестве стандартной
 AUTH_USER_MODEL = 'userprofile.UserProfile'
@@ -48,9 +43,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # 'rest_framework',
-    # 'rest_framework.authtoken',
-    # 'djoser',
     'image64conv.apps.Image64ConvConfig',
     'userprofile.apps.UserProfileConfig',
     'api.apps.ApiConfig',
@@ -173,8 +165,6 @@ REST_FRAMEWORK = {
 
 }
 
-# Создаются таблицы в БД для пользователя и регистрация туда попадает,
-# но токены лежат отдельно. Задать сериализаторы для токенов?
 DJOSER = {
     'HIDE_USERS': False,
     'LOGIN_FIELD': 'email',
