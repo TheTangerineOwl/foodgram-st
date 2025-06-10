@@ -6,7 +6,9 @@ COPY . .
 
 RUN echo "#!/bin/bash\n\
 # Применяем миграции\n\
+\
 python manage.py makemigrations\n\
+\
 python manage.py migrate\n\
 # Собираем статику\n\
 python manage.py collectstatic --no-input\n\

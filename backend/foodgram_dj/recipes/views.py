@@ -39,7 +39,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """Представление для получения рецепта."""
-    queryset = Recipe.objects.all().order_by('created_at')
+    queryset = Recipe.objects.all().order_by('-created_at')
     serializer_class = RecipeSerializer
     pagination_class = PageNumberPagination
     permission_classes = (AuthorOrReadOnly,)
@@ -77,7 +77,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
             'short-link': short_link
         }, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['post', 'delete'], url_path='shopping_cart')
+    @action(detail=True,
+            methods=['post', 'delete'],
+            url_path='shopping_cart',
+            permission_classes=[permissions.IsAuthenticated])
     def post_delete_shopping_cart(self, request, pk=None):
         recipe = get_object_or_404(Recipe, pk=pk)
 
@@ -106,7 +109,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['get'], url_path='download_shopping_cart')
+    @action(detail=False,
+            methods=['get'],
+            url_path='download_shopping_cart',
+            permission_classes=[permissions.IsAuthenticated])
     def download_cart(self, request):
         user = request.user
 
@@ -151,7 +157,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         return response
 
-    @action(detail=True, methods=['post', 'delete'], url_path='favorite')
+    @action(detail=True,
+            methods=['post', 'delete'],
+            url_path='favorite',
+            permission_classes=[permissions.IsAuthenticated])
     def post_delete_favorite(self, request, pk=None):
         recipe = get_object_or_404(Recipe, pk=pk)
 

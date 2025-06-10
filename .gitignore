@@ -144,3 +144,6 @@ infra/.docker-compose-old.yml
 backend/foodgram_dj/clearalldocker.sh
 backend/foodgram_dj/data/ingredients.csv
 backend/foodgram_dj/data/ingredients.json
+backend/foodgram_dj/recipes/management/__init__.py
+backend/foodgram_dj/recipes/management/commands/__init__.py
+backend/foodgram_dj/recipes/management/commands/fix_fixtures.py
