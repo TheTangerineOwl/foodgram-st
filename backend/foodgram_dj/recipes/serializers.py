@@ -28,6 +28,12 @@ class IngredientRecipeSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='ingredient.name')
     measurement_unit = serializers.CharField(
         source='ingredient.measurement_unit')
+    amount = serializers.IntegerField(
+        min_value=1,
+        error_messages={
+            'min_value': 'Количество должно быть больше нуля!'
+        }
+    )
 
     class Meta:
         model = IngredientRecipe
@@ -37,11 +43,18 @@ class IngredientRecipeSerializer(serializers.ModelSerializer):
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для рецептов."""
 
+    cooking_time = serializers.IntegerField(
+        min_value=1,
+        error_messages={
+            'min_value': 'Время приготовления должно быть больше нуля!'
+        }
+    )
+
     author = UserProfileSerializer(read_only=True)
 
     ingredients = serializers.SerializerMethodField()
 
-    image = Base64ImageField(required=False, allow_null=True)
+    image = Base64ImageField(required=True)
     # image_url = serializers.SerializerMethodField(
     #     'get_image_url',
     #     read_only=True,
@@ -127,6 +140,11 @@ class RecipeSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Создание рецепта с ингредиентами."""
         ingredients_data = validated_data.pop('ingredients', [])
+        if not ingredients_data or len(ingredients_data) == 0:
+            raise serializers.ValidationError(
+                'Поле "Игредиенты" должно быть заполнено!'
+            )
+
         recipe = Recipe.objects.create(**validated_data)
 
         self.create_ingredients(recipe=recipe,
@@ -137,6 +155,10 @@ class RecipeSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         """Обновление рецепта с ингредиентами."""
         ingredients_data = validated_data.pop('ingredients', None)
+        if not ingredients_data or len(ingredients_data) == 0:
+            raise serializers.ValidationError(
+                'Поле "Игредиенты" должно быть заполнено!'
+            )
 
         # Обновляем основные поля рецепта
         for attr, value in validated_data.items():
@@ -153,7 +175,12 @@ class RecipeSerializer(serializers.ModelSerializer):
         """Создание связей с ингредиентами."""
         # Получаем все нужные ингредиенты одним запросом
         ingredient_ids = [item['id'] for item in ingredients_data]
+        # Проверить надо, что они возвращаются
         ingredients = Ingredient.objects.in_bulk(ingredient_ids)
+        if len(ingredients) != len(ingredient_ids):
+            raise serializers.ValidationError(
+                'Ингредиент не существует!'
+            )
 
         ingredient_recipe_objects = [
             IngredientRecipe(
@@ -171,12 +198,12 @@ class RecipeSerializer(serializers.ModelSerializer):
         # Удаляем старые ингредиенты
         recipe.recipe_ingredients.all().delete()
         # Создаем новые
-        self._create_ingredients(recipe, ingredients_data)
+        self.create_ingredients(recipe, ingredients_data)
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):
     # id, name, image, image_url, cooking_time
-    image = Base64ImageField(required=False, allow_null=True)
+    image = Base64ImageField(required=True)
 
     class Meta:
         model = Recipe

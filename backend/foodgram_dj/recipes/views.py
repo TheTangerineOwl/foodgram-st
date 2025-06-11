@@ -6,7 +6,8 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import (viewsets, permissions, filters,
                             status, mixins, pagination)
-from rest_framework.pagination import PageNumberPagination
+from rest_framework.pagination import (PageNumberPagination,
+                                       LimitOffsetPagination)
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_short_url.models import ShortURL
@@ -15,7 +16,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import (Recipe, Ingredient, ShoppingCart,
                      IngredientRecipe, Favorites)
 from .serializers import (IngredientSerializer,
-                          RecipeSerializer, SubscriptionSerializer)
+                          RecipeSerializer, ShortRecipeSerializer,
+                          SubscriptionSerializer)
 from .permissions import AuthorOrReadOnly
 from .filters import RecipeFilter
 
@@ -45,7 +47,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     """Представление для получения рецепта."""
     # queryset = Recipe.objects.all().order_by('-created_at')
     serializer_class = RecipeSerializer
-    pagination_class = PageNumberPagination
+    # pagination_class = PageNumberPagination
+    pagination_class = LimitOffsetPagination
     permission_classes = (AuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     search_fields = ('name',)
@@ -66,6 +69,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_short_link(self, request, pk=None):
         # recipe = get_object_or_404(Recipe, pk=pk)
         recipe = self.get_object()
+        if not recipe:
+            return Response(
+                {'detail': 'Страница не найдена.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         # Создаем полный URL для рецепта
         full_url = request.build_absolute_uri(recipe.get_absolute_url())
@@ -112,13 +120,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
                                 }, status=status.HTTP_400_BAD_REQUEST)
             # recipe.is_in_shopping_cart = True
             recipe.save()
-            serializer = RecipeSerializer(recipe)
+            serializer = ShortRecipeSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         elif request.method == 'DELETE':
             count, var = ShoppingCart.objects.filter(
                 user=user, recipe=recipe).delete()
             if count == 0:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {
+                        'detail': 'Рецепта не было в списке покупок!'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST)
             # recipe.is_in_shopping_cart = False
             recipe.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -197,13 +209,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
                                 }, status=status.HTTP_400_BAD_REQUEST)
             # recipe.is_favorited = True
             recipe.save()
-            serializer = RecipeSerializer(recipe)
+            # serializer = RecipeSerializer(recipe)
+            serializer = ShortRecipeSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         elif request.method == 'DELETE':
             count, var = Favorites.objects.filter(
                 user=user, recipe=recipe).delete()
             if count == 0:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+                return Response({
+                    'detail': 'Рецепта не было в списке Избранного!'
+                },
+                    status=status.HTTP_400_BAD_REQUEST)
             # recipe.is_favorited = False
             recipe.save()
             return Response(status=status.HTTP_204_NO_CONTENT)

@@ -1,10 +1,15 @@
 """Модель профиля пользователя, списка покупок и избранного."""
+from re import match
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-# from django.contrib.auth import get_user_model
+from rest_framework.validators import ValidationError
 
-# Получение стандартной модели пользователя для этого проекта.
-# User = get_user_model()
+
+def validate_username(value):
+    if not match(r'^[\w.@+-]+\Z', value):
+        raise ValidationError(
+            'Недопустимые символы: ^[\\w.@+-]+\\z'
+        )
 
 
 class UserProfile(AbstractUser):
@@ -18,16 +23,19 @@ class UserProfile(AbstractUser):
     username = models.CharField(
         max_length=150,
         unique=True,
+        validators=[validate_username]
     )
 
     first_name = models.CharField(
         max_length=150,
-        blank=True,
+        blank=False,
+        null=False
     )
 
     last_name = models.CharField(
         max_length=150,
-        blank=True,
+        blank=False,
+        null=False
     )
 
     avatar = models.ImageField(

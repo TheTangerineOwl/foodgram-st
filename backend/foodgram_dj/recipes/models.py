@@ -3,9 +3,18 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
+from django.core.validators import MinValueValidator
+from rest_framework.validators import ValidationError
 
 # Получение стандартной модели пользователя для проекта
 User = get_user_model()
+
+
+def validate_positive(value):
+    if not value or value < 1:
+        raise ValidationError(
+            'Недопустимое значение!'
+        )
 
 
 class Ingredient(models.Model):
@@ -42,13 +51,17 @@ class Recipe(models.Model):
     )
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name=_('Время приготовления (в минутах)'),
-        blank=False
+        blank=False,
+        validators=[validate_positive,
+                    MinValueValidator(
+                        1,
+                        message='Значение должно быть больше нуля!'
+                    )],
     )
     image = models.ImageField(
         verbose_name=_('Фото'),
         upload_to='recipes/images',
-        blank=True,
-        default=None
+        blank=False
     )
     author = models.ForeignKey(
         User,
@@ -99,7 +112,11 @@ class IngredientRecipe(models.Model):
     )
     amount = models.PositiveIntegerField(
         _('Количество'),
-        blank=False
+        blank=False,
+        validators=[validate_positive,
+                    MinValueValidator(
+                        1,
+                        message='Значение должно быть больше нуля!')],
     )
 
     def __str__(self):
