@@ -10,11 +10,11 @@ jobs:
       postgres:
         image: postgres:14
         env:
-          POSTGRES_USER: ${{ env.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
         ports:
-          - ${{ env.DB_PORT }}:5432
+          - ${{ secrets.DB_PORT }}:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - name: Check out repo code
@@ -32,11 +32,11 @@ jobs:
         run: python -m ruff check backend/foodgram_dj/
       - name: Run backend tests
         env:
-          POSTGRES_USER: ${{ env.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ env.POSTGRES_DB }}
-          DB_HOST: ${{ env.DB_HOST }}
-          DB_PORT: ${{ env.DB_PORT }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
         run: python backend/manage.py test
   frontend_tests:
     runs-on: ubuntu-latest
