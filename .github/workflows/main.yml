@@ -37,7 +37,7 @@ jobs:
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: ${{ secrets.DB_PORT }}
-        run: python backend/manage.py test
+        run: python backend/foodgram_dj/manage.py test
   frontend_tests:
     runs-on: ubuntu-latest
     steps:
@@ -49,7 +49,8 @@ jobs:
       - name: Install dependencies
         run: |
           cd frontend/
-          npm install
+          npm install/
+          npm ci
       - name: Test frontend
         run: |
           cd frontend/
