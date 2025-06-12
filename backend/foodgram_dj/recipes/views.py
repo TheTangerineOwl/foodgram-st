@@ -20,6 +20,7 @@ from .serializers import (IngredientSerializer,
                           SubscriptionSerializer)
 from .permissions import AuthorOrReadOnly
 from .filters import RecipeFilter
+from userprofile.models import Subscription
 
 
 User = get_user_model()
@@ -247,3 +248,33 @@ class SubscriptionViewSet(viewsets.GenericViewSet,
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+
+class SingleSubscriptionViewSet(viewsets.GenericViewSet):
+    queryset = User.objects.all()
+    serializer_class = SubscriptionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=True, methods=['post', 'delete'], url_path='subscribe')
+    def sub_and_unsub(self, request, pk=None):
+        to_sub = get_object_or_404(User, pk=pk)
+
+        if request.method == 'POST':
+            if to_sub == request.user:
+                return Response({'error':
+                                 'Нельзя подписаться на самого себя!'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            sub, created = Subscription.objects.get_or_create(
+                user=request.user, follows=to_sub)
+            if not created:
+                return Response({'error': 'Подписка уже есть!'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            serializer = self.get_serializer(to_sub)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        count, _ = Subscription.objects.filter(user=request.user,
+                                               follows=to_sub).delete()
+        if count == 0:
+            return Response({'detail': 'Ошибка отписки: не был подписан!'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_204_NO_CONTENT)

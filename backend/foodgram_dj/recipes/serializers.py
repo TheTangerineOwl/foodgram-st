@@ -98,6 +98,12 @@ class RecipeSerializer(serializers.ModelSerializer):
             ret['ingredients'] = data['ingredients']
         return ret
 
+    def validate_cooking_time(self, value):
+        if value <= 0:
+            raise serializers.ValidationError(
+                'Время приготовления должно быть больше нуля!')
+        return value
+
     def validate_ingredients(self, value):
         """Валидация ингредиентов."""
         if not isinstance(value, list):
@@ -181,16 +187,21 @@ class RecipeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Ингредиент не существует!'
             )
+        
+        ingredient_recipe_objects = []
+        for ingredient_data in ingredients_data:
+            if ingredient_data['id'] in ingredients:
 
-        ingredient_recipe_objects = [
-            IngredientRecipe(
-                recipe=recipe,
-                ingredient=ingredients[ingredient_data['id']],
-                amount=ingredient_data['amount']
-            )
-            for ingredient_data in ingredients_data
-            if ingredient_data['id'] in ingredients
-        ]
+                if int(ingredient_data['amount']) <= 0:
+                    raise serializers.ValidationError(
+                        'Количество не может быть меньше 1!'
+                    )
+
+                IngredientRecipe(
+                    recipe=recipe,
+                    ingredient=ingredients[ingredient_data['id']],
+                    amount=ingredient_data['amount']
+                )
         IngredientRecipe.objects.bulk_create(ingredient_recipe_objects)
 
     def update_ingredients(self, recipe, ingredients_data):

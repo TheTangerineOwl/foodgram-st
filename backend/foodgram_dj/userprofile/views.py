@@ -68,37 +68,37 @@ class UserProfileViewSet(views.UserViewSet):
             status=status.HTTP_204_NO_CONTENT
         )
 
-    @action(detail=True, methods=['post', 'delete'], url_path='subscribe')
-    def sub_and_unsub(self, request, id=None):
-        """Метод для создания и удаления подписки на авторов"""
-        to_sub = get_object_or_404(UserProfile, pk=id)
+    # @action(detail=True, methods=['post', 'delete'], url_path='subscribe')
+    # def sub_and_unsub(self, request, id=None):
+    #     """Метод для создания и удаления подписки на авторов"""
+    #     to_sub = get_object_or_404(UserProfile, pk=id)
 
-        if request.method == 'POST':
-            if to_sub == request.user:
-                raise ValidationError(
-                    {'error': 'Нельзя подписаться на самого себя!'}
-                )
-            sub, created = Subscription.objects.get_or_create(
-                user=request.user,
-                follows=to_sub
-            )
-            if not created:
-                raise ValidationError({'error': 'Подписка уже есть!'})
-            return Response(
-                UserProfileSerializer(sub.follows).data,
-                status=status.HTTP_201_CREATED
-            )
+    #     if request.method == 'POST':
+    #         if to_sub == request.user:
+    #             raise ValidationError(
+    #                 {'error': 'Нельзя подписаться на самого себя!'}
+    #             )
+    #         sub, created = Subscription.objects.get_or_create(
+    #             user=request.user,
+    #             follows=to_sub
+    #         )
+    #         if not created:
+    #             raise ValidationError({'error': 'Подписка уже есть!'})
+    #         return Response(
+    #             UserProfileSerializer(sub.follows).data,
+    #             status=status.HTTP_201_CREATED
+    #         )
 
-        # count, var = get_object_or_404(Subscription, user=request.user,
-        #                                follows=to_sub
-        #                                ).delete()
-        count, var = Subscription.objects.filter(user=request.user,
-                                                 follows=to_sub
-                                                 ).delete()
-        if count == 0:
-            return Response(
-                {'detail': 'Ошибка отписки: не был подписан!'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+    #     # count, var = get_object_or_404(Subscription, user=request.user,
+    #     #                                follows=to_sub
+    #     #                                ).delete()
+    #     count, var = Subscription.objects.filter(user=request.user,
+    #                                              follows=to_sub
+    #                                              ).delete()
+    #     if count == 0:
+    #         return Response(
+    #             {'detail': 'Ошибка отписки: не был подписан!'},
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    #     return Response(status=status.HTTP_204_NO_CONTENT)
