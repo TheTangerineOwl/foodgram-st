@@ -32,6 +32,8 @@ jobs:
       #   run: python -m ruff check backend/foodgram_dj/
       - name: Run backend tests
         env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
@@ -50,6 +52,7 @@ jobs:
         run: |
           cd frontend/
           npm install
+          npm audit fix --force
           npm ci
       - name: Test frontend
         run: |
