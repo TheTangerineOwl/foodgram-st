@@ -15,10 +15,9 @@ router.register(r'users/subscriptions',
                 SubscriptionViewSet,
                 basename='subscriptions')
 router.register(r'users', SingleSubscriptionViewSet, basename='users')
+
 urlpatterns = [
     re_path(r's/^(?P<surl>\w+)', surl_views.short_url_redirect,
             name='short_url_redirect'),
-    # path('users/subscriptions',
-    #      SubscriptionViewSet.as_view({'get': 'list'})),
     path('', include(router.urls)),
 ]

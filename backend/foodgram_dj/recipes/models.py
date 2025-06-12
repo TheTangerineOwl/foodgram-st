@@ -11,6 +11,7 @@ User = get_user_model()
 
 
 def validate_positive(value):
+    """Проверяет, что значение положительное."""
     if not value or value < 1:
         raise ValidationError(
             'Недопустимое значение!'
@@ -73,7 +74,7 @@ class Recipe(models.Model):
         Ingredient,
         through='IngredientRecipe',
         verbose_name=_('Игредиенты'),
-        related_name='recipes',  # для доступа из ингредиента
+        related_name='recipes',
         through_fields=('recipe', 'ingredient'),
         blank=False,
     )
@@ -130,7 +131,6 @@ class IngredientRecipe(models.Model):
                 name='unique_recipe_ingredient'
             )
         ]
-        # default_related_name = 'recipe_ingredients'
 
 
 class ShoppingCart(models.Model):

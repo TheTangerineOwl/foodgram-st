@@ -6,6 +6,7 @@ from rest_framework.validators import ValidationError
 
 
 def validate_username(value):
+    """Валидатор для никнейма."""
     if not match(r'^[\w.@+-]+\Z', value):
         raise ValidationError(
             'Недопустимые символы: ^[\\w.@+-]+\\z'

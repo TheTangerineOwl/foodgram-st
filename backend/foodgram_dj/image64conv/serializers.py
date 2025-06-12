@@ -1,3 +1,7 @@
+"""
+Поля для сериализаторов, позволяющие использовать представление
+картинки в base64.
+"""
 from base64 import b64decode
 import uuid
 from django.core.files.base import ContentFile

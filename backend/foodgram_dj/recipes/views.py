@@ -6,8 +6,7 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import (viewsets, permissions, filters,
                             status, mixins, pagination)
-from rest_framework.pagination import (PageNumberPagination,
-                                       LimitOffsetPagination)
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_short_url.models import ShortURL
@@ -46,9 +45,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """Представление для получения рецепта."""
-    # queryset = Recipe.objects.all().order_by('-created_at')
     serializer_class = RecipeSerializer
-    # pagination_class = PageNumberPagination
     pagination_class = LimitOffsetPagination
     permission_classes = (AuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
@@ -57,6 +54,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filterset_class = RecipeFilter
 
     def get_queryset(self):
+        """Получение списка объектов."""
         return Recipe.objects.select_related('author').prefetch_related(
             'recipe_ingredients__ingredient',
             'user_favs',
@@ -68,7 +66,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='get-link')
     def get_short_link(self, request, pk=None):
-        # recipe = get_object_or_404(Recipe, pk=pk)
+        """Получение короткой ссылки."""
         recipe = self.get_object()
         if not recipe:
             return Response(
@@ -102,6 +100,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             url_path='shopping_cart',
             permission_classes=[permissions.IsAuthenticated])
     def post_delete_shopping_cart(self, request, pk=None):
+        """Добавление рецепта в Корзину или удаление."""
         recipe = get_object_or_404(Recipe, pk=pk)
 
         user = request.user
@@ -119,7 +118,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
                                 'message': 'Рецепт уже в списке покупок!',
                                 'data': []
                                 }, status=status.HTTP_400_BAD_REQUEST)
-            # recipe.is_in_shopping_cart = True
             recipe.save()
             serializer = ShortRecipeSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -132,7 +130,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
                         'detail': 'Рецепта не было в списке покупок!'
                     },
                     status=status.HTTP_400_BAD_REQUEST)
-            # recipe.is_in_shopping_cart = False
             recipe.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
@@ -143,6 +140,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             url_path='download_shopping_cart',
             permission_classes=[permissions.IsAuthenticated])
     def download_cart(self, request):
+        """Скачивание текстового файла со списком покупок."""
         user = request.user
 
         # Получаем все ингредиенты из корзины с суммированием количества
@@ -172,7 +170,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 f"{item['total_amount']} "
                 f"{item['ingredient__measurement_unit']}\n"
             )
-        # file_content.write(line.encode('utf-8'))
         file_content.write(line.encode('utf-8'))
 
         # Подготавливаем файл для скачивания
@@ -191,6 +188,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             url_path='favorite',
             permission_classes=[permissions.IsAuthenticated])
     def post_delete_favorite(self, request, pk=None):
+        """Добавление рецепта в закладки или удаление."""
         recipe = get_object_or_404(Recipe, pk=pk)
 
         user = request.user
@@ -208,9 +206,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                                 'message': 'Рецепт уже в списке Избранного!',
                                 'data': []
                                 }, status=status.HTTP_400_BAD_REQUEST)
-            # recipe.is_favorited = True
             recipe.save()
-            # serializer = RecipeSerializer(recipe)
             serializer = ShortRecipeSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         elif request.method == 'DELETE':
@@ -221,7 +217,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     'detail': 'Рецепта не было в списке Избранного!'
                 },
                     status=status.HTTP_400_BAD_REQUEST)
-            # recipe.is_favorited = False
             recipe.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
@@ -230,16 +225,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 class SubscriptionViewSet(viewsets.GenericViewSet,
                           mixins.ListModelMixin):
+    """Представление для подписки."""
     serializer_class = SubscriptionSerializer
     pagination_class = pagination.LimitOffsetPagination
     permission_classes = (permissions.IsAuthenticated, )
 
     def get_queryset(self):
+        """Получение пользователя, на которого подписка."""
         return User.objects.filter(
             subbed_to__user=self.request.user
         ).prefetch_related('recipes')
 
     def list(self, request, *args, **kwargs):
+        """
+        Вывод списка пользователей, на которых оформлена подписка,
+        вместе с их пагинированными рецептами.
+        """
         queryset = self.get_queryset()
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -251,12 +252,14 @@ class SubscriptionViewSet(viewsets.GenericViewSet,
 
 
 class SingleSubscriptionViewSet(viewsets.GenericViewSet):
+    """Вывод пользователя, на которого оформлена подписка."""
     queryset = User.objects.all()
     serializer_class = SubscriptionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     @action(detail=True, methods=['post', 'delete'], url_path='subscribe')
     def sub_and_unsub(self, request, pk=None):
+        """Замена подобноого метода от UserProfile."""
         to_sub = get_object_or_404(User, pk=pk)
 
         if request.method == 'POST':

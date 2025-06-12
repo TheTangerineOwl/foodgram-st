@@ -13,10 +13,6 @@ class UserProfileSerializer(UserSerializer):
         read_only=True
     )
     avatar = Base64ImageField(required=False, allow_null=True)
-    # avatar_url = serializers.SerializerMethodField(
-    #     'get_avatar_url',
-    #     read_only=True,
-    # )
 
     class Meta(UserSerializer.Meta):
         # Метаданные

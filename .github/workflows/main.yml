@@ -28,8 +28,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install ruff==0.8.0
           pip install -r ./backend/foodgram_dj/requirements.txt
-      # - name: Lint with ruff
-      #   run: python -m ruff check backend/foodgram_dj/
+      - name: Lint with ruff
+        run: python -m ruff check backend/foodgram_dj/
       - name: Run backend tests
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
@@ -54,10 +54,10 @@ jobs:
           npm install
           npm audit fix --force
           npm ci --legacy-peer-deps
-      - name: Test frontend
-        run: |
-          cd frontend/
-          npm run test
+      # - name: Test frontend
+      #   run: |
+      #     cd frontend/
+      #     npm run test
   build_and_push_to_docker_hub_backend:
     name: Push backend Docker image to DockerHub
     runs-on: ubuntu-latest

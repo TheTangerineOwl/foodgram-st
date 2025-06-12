@@ -1,8 +1,7 @@
 """Сериализаторы для моделей рецептов и ингредиентов."""
 from django.core.paginator import Paginator
-from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
-from .models import Recipe, Ingredient, IngredientRecipe, Favorites
+from .models import Recipe, Ingredient, IngredientRecipe
 from image64conv.serializers import Base64ImageField
 from userprofile.serializers import UserProfileSerializer
 
@@ -55,10 +54,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     ingredients = serializers.SerializerMethodField()
 
     image = Base64ImageField(required=True)
-    # image_url = serializers.SerializerMethodField(
-    #     'get_image_url',
-    #     read_only=True,
-    # )
+
     is_favorited = serializers.SerializerMethodField(
         'get_is_favorited',
         read_only=True
@@ -80,7 +76,6 @@ class RecipeSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         """Кастомное представление для чтения."""
         representation = super().to_representation(instance)
-        # Заменяем ingredients для чтения
         representation['ingredients'] = IngredientRecipeSerializer(
             instance.recipe_ingredients.all(), many=True
         ).data
@@ -125,19 +120,15 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         return value
 
-    # def get_image_url(self, obj):
-    #     """Получение ссылки на картинку."""
-    #     if obj.image:
-    #         return obj.image.url
-    #     return None
-
     def get_is_favorited(self, obj):
+        """Получение пометки "В Избранном"."""
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return False
         return obj.user_favs.filter(user=request.user).exists()
 
     def get_is_in_shopping_cart(self, obj):
+        """Получение пометки "В Корзине"."""
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return False
@@ -166,12 +157,10 @@ class RecipeSerializer(serializers.ModelSerializer):
                 'Поле "Игредиенты" должно быть заполнено!'
             )
 
-        # Обновляем основные поля рецепта
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
-        # Обновляем ингредиенты, если они переданы
         if ingredients_data is not None:
             self.update_ingredients(instance, ingredients_data)
 
@@ -179,7 +168,6 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def create_ingredients(self, recipe, ingredients_data):
         """Создание связей с ингредиентами."""
-        # Получаем все нужные ингредиенты одним запросом
         ingredient_ids = [item['id'] for item in ingredients_data]
         # Проверить надо, что они возвращаются
         ingredients = Ingredient.objects.in_bulk(ingredient_ids)
@@ -187,7 +175,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Ингредиент не существует!'
             )
-        
+
         ingredient_recipe_objects = []
         for ingredient_data in ingredients_data:
             if ingredient_data['id'] in ingredients:
@@ -213,7 +201,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):
-    # id, name, image, image_url, cooking_time
+    """Сокращенное представление рецепта."""
     image = Base64ImageField(required=True)
 
     class Meta:
@@ -233,7 +221,7 @@ class SubscriptionSerializer(UserProfileSerializer):
 
     def get_recipes(self, obj):
         request = self.context.get('request')
-        recipes = obj.recipes.all()  # Рецепты пользователя (follows)
+        recipes = obj.recipes.all()
 
         recipes_limit = request.query_params.get('recipes_limit')
         if recipes_limit:
