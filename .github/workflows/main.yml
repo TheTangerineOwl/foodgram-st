@@ -53,7 +53,7 @@ jobs:
           cd frontend/
           npm install
           npm audit fix --force
-          npm ci
+          npm ci --legacy-peer-deps
       - name: Test frontend
         run: |
           cd frontend/
