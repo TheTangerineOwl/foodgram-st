@@ -16,7 +16,10 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 class IngredientRecipeCreateSerializer(serializers.Serializer):
     """Сериализатор для ввода ингредиентов при создании/обновлении рецепта."""
-    id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
+    id = serializers.PrimaryKeyRelatedField(
+        queryset=Ingredient.objects.all(),
+        source='ingredient'
+    )
     amount = serializers.IntegerField(min_value=1)
 
 
@@ -185,10 +188,12 @@ class RecipeSerializer(serializers.ModelSerializer):
                         'Количество не может быть меньше 1!'
                     )
 
-                IngredientRecipe(
-                    recipe=recipe,
-                    ingredient=ingredients[ingredient_data['id']],
-                    amount=ingredient_data['amount']
+                ingredient_recipe_objects.append(
+                    IngredientRecipe(
+                        recipe=recipe,
+                        ingredient=ingredients[ingredient_data['id']],
+                        amount=ingredient_data['amount']
+                    )
                 )
         IngredientRecipe.objects.bulk_create(ingredient_recipe_objects)
 
