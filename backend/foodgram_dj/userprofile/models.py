@@ -59,6 +59,9 @@ class UserProfile(AbstractUser):
         verbose_name = 'профиль пользователя'
         verbose_name_plural = 'Профили пользователей'
 
+    def __str__(self):
+        return self.username
+
 
 class Subscription(models.Model):
     """Модель для связи пользователей подпиской."""
@@ -84,3 +87,6 @@ class Subscription(models.Model):
         ]
         verbose_name = 'подписка'
         verbose_name_plural = 'Подписки'
+
+    def __str__(self):
+        return f'{self.user} подписан на {self.follows}'
