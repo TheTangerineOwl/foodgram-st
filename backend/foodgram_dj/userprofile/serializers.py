@@ -22,7 +22,6 @@ class UserProfileSerializer(UserSerializer):
                   'last_name', 'is_subscribed',
                   'avatar']
 
-
     def get_current_user(self):
         """Получение текущего авторизованного пользователя."""
         request = self.context.get('request', None)
