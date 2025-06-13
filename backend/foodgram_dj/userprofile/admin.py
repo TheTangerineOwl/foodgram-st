@@ -30,11 +30,4 @@ class UserProfileAdmin(UserAdmin):
     list_filter = ('username', 'email')
     empty_value_display = '-пусто-'
 
-    # Добавляем инлайн подписок
     inlines = (SubscriptionInline,)
-
-    def get_inline_instances(self, request, obj=None):
-        """Инлайны появляются только при редактировании."""
-        if not obj:
-            return []
-        return super().get_inline_instances(request, obj)

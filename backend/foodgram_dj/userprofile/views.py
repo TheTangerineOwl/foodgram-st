@@ -36,34 +36,37 @@ class UserProfileViewSet(views.UserViewSet):
     def put_delete_avatar(self, request):
         """Создать или удалить аватар."""
         user = request.user
+
         if request.method == 'PUT':
+            if 'avatar' not in request.data:
+                return Response(
+                    {'detail': 'Поле "avatar" не задано!'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             serializer = self.get_serializer(user,
                                              data=request.data,
                                              partial=True)
             serializer.is_valid(raise_exception=True)
 
-            if 'avatar' not in request.data or not request.data.get('avatar'):
-                return Response(
-                    {'detail': 'Поле \'avatar\' не задано!'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
             if user.avatar:
-                user.avatar.delete()
+                user.avatar.delete(save=True)
 
             serializer.save()
             return Response(
                 {'avatar': serializer.data['avatar']},
                 status=status.HTTP_200_OK
             )
-        if not user.avatar:
+        # DELETE запрос
+        elif request.method == 'DELETE':
+            if not user.avatar:
+                return Response(
+                    {'detail': 'Аватар не существует!'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            user.avatar.delete(save=True)
+            user.save()
             return Response(
-                {'detail': 'Аватар не существует!'},
-                status=status.HTTP_400_BAD_REQUEST
+                {'message': 'Аватар успешно удалён'},
+                status=status.HTTP_204_NO_CONTENT
             )
-        user.avatar.delete()
-        user.save()
-        return Response(
-            {'message': 'Аватар успешно удалён'},
-            status=status.HTTP_204_NO_CONTENT
-        )

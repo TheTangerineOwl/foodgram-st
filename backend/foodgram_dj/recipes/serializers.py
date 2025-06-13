@@ -20,7 +20,12 @@ class IngredientRecipeCreateSerializer(serializers.Serializer):
         queryset=Ingredient.objects.all(),
         source='ingredient'
     )
-    amount = serializers.IntegerField(min_value=1)
+    amount = serializers.IntegerField(
+        min_value=1,
+        error_messages={
+            'min_value': 'Количество должно быть больше нуля!'
+        }
+    )
 
 
 class IngredientRecipeSerializer(serializers.ModelSerializer):
@@ -30,12 +35,7 @@ class IngredientRecipeSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='ingredient.name')
     measurement_unit = serializers.CharField(
         source='ingredient.measurement_unit')
-    amount = serializers.IntegerField(
-        min_value=1,
-        error_messages={
-            'min_value': 'Количество должно быть больше нуля!'
-        }
-    )
+    amount = serializers.IntegerField()
 
     class Meta:
         model = IngredientRecipe
@@ -54,7 +54,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     author = UserProfileSerializer(read_only=True)
 
-    ingredients = serializers.SerializerMethodField()
+    ingredients = IngredientRecipeCreateSerializer(many=True, write_only=True)
 
     image = Base64ImageField(required=True)
 
@@ -84,24 +84,6 @@ class RecipeSerializer(serializers.ModelSerializer):
         ).data
         return representation
 
-    def get_ingredients(self, obj):
-        """Метод для получения ингредиентов при чтении."""
-        ingredients = obj.recipe_ingredients.all()
-        return IngredientRecipeSerializer(ingredients, many=True).data
-
-    def to_internal_value(self, data):
-        """Преобразование входных данных перед валидацией."""
-        ret = super().to_internal_value(data)
-        if 'ingredients' in data:
-            ret['ingredients'] = data['ingredients']
-        return ret
-
-    def validate_cooking_time(self, value):
-        if value <= 0:
-            raise serializers.ValidationError(
-                'Время приготовления должно быть больше нуля!')
-        return value
-
     def validate_ingredients(self, value):
         """Валидация ингредиентов."""
         if not isinstance(value, list):
@@ -112,7 +94,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Нужен как минимум один ингредиент!")
 
-        ingredient_ids = [item.get('id') for item in value]
+        ingredient_ids = [item['ingredient'].id for item in value]
         if None in ingredient_ids:
             raise serializers.ValidationError(
                 "У каждого ингредиента должен быть id")
@@ -140,69 +122,43 @@ class RecipeSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Создание рецепта с ингредиентами."""
         ingredients_data = validated_data.pop('ingredients', [])
-        if not ingredients_data or len(ingredients_data) == 0:
-            raise serializers.ValidationError(
-                'Поле "Игредиенты" должно быть заполнено!'
-            )
-
         recipe = Recipe.objects.create(**validated_data)
 
-        self.create_ingredients(recipe=recipe,
-                                ingredients_data=ingredients_data)
+        ingredient_recipe_objects = []
+        for ingredient_data in ingredients_data:
+            ingredient_recipe_objects.append(
+                IngredientRecipe(
+                    recipe=recipe,
+                    ingredient=ingredient_data['ingredient'],
+                    amount=ingredient_data['amount']
+                )
+            )
 
+        IngredientRecipe.objects.bulk_create(ingredient_recipe_objects)
         return recipe
 
     def update(self, instance, validated_data):
         """Обновление рецепта с ингредиентами."""
         ingredients_data = validated_data.pop('ingredients', None)
-        if not ingredients_data or len(ingredients_data) == 0:
-            raise serializers.ValidationError(
-                'Поле "Игредиенты" должно быть заполнено!'
-            )
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
         if ingredients_data is not None:
-            self.update_ingredients(instance, ingredients_data)
-
-        return instance
-
-    def create_ingredients(self, recipe, ingredients_data):
-        """Создание связей с ингредиентами."""
-        ingredient_ids = [item['id'] for item in ingredients_data]
-        # Проверить надо, что они возвращаются
-        ingredients = Ingredient.objects.in_bulk(ingredient_ids)
-        if len(ingredients) != len(ingredient_ids):
-            raise serializers.ValidationError(
-                'Ингредиент не существует!'
-            )
-
-        ingredient_recipe_objects = []
-        for ingredient_data in ingredients_data:
-            if ingredient_data['id'] in ingredients:
-
-                if int(ingredient_data['amount']) <= 0:
-                    raise serializers.ValidationError(
-                        'Количество не может быть меньше 1!'
-                    )
-
+            instance.recipe_ingredients.all().delete()
+            ingredient_recipe_objects = []
+            for ingredient_data in ingredients_data:
                 ingredient_recipe_objects.append(
                     IngredientRecipe(
-                        recipe=recipe,
-                        ingredient=ingredients[ingredient_data['id']],
+                        recipe=instance,
+                        ingredient=ingredient_data['ingredient'],
                         amount=ingredient_data['amount']
                     )
                 )
-        IngredientRecipe.objects.bulk_create(ingredient_recipe_objects)
+            IngredientRecipe.objects.bulk_create(ingredient_recipe_objects)
 
-    def update_ingredients(self, recipe, ingredients_data):
-        """Обновление связей с ингредиентами."""
-        # Удаляем старые ингредиенты
-        recipe.recipe_ingredients.all().delete()
-        # Создаем новые
-        self.create_ingredients(recipe, ingredients_data)
+        return instance
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):

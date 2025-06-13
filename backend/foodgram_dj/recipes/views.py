@@ -49,7 +49,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     pagination_class = LimitOffsetPagination
     permission_classes = (AuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
-    search_fields = ('name',)
+    search_fields = ('^name',)
     filterset_fields = ('name', )
     filterset_class = RecipeFilter
 
@@ -84,7 +84,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             short_url.save()
 
         if not short_url.surl:
-            return Response({'error': 'Short URL generation failed'},
+            return Response({'detail':
+                             'Не удалось сгенерировать короткую ссылку!'},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         scheme = 'https' if request.is_secure() else 'http'
         domain = request.get_host()
@@ -115,8 +116,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 user=user, recipe=recipe)
             if not created:
                 return Response({
-                                'message': 'Рецепт уже в списке покупок!',
-                                'data': []
+                                'detail': 'Рецепт уже в списке покупок!',
                                 }, status=status.HTTP_400_BAD_REQUEST)
             recipe.save()
             serializer = ShortRecipeSerializer(recipe)
@@ -194,7 +194,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         user = request.user
         if not user.is_authenticated:
             return Response(
-                {'error': 'Authentication required'},
+                {'detail': 'Authentication required'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
@@ -203,8 +203,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 user=user, recipe=recipe)
             if not created:
                 return Response({
-                                'message': 'Рецепт уже в списке Избранного!',
-                                'data': []
+                                'detail': 'Рецепт уже в списке Избранного!',
                                 }, status=status.HTTP_400_BAD_REQUEST)
             recipe.save()
             serializer = ShortRecipeSerializer(recipe)
@@ -264,13 +263,13 @@ class SingleSubscriptionViewSet(viewsets.GenericViewSet):
 
         if request.method == 'POST':
             if to_sub == request.user:
-                return Response({'error':
+                return Response({'detail':
                                  'Нельзя подписаться на самого себя!'},
                                 status=status.HTTP_400_BAD_REQUEST)
             sub, created = Subscription.objects.get_or_create(
                 user=request.user, follows=to_sub)
             if not created:
-                return Response({'error': 'Подписка уже есть!'},
+                return Response({'detail': 'Подписка уже есть!'},
                                 status=status.HTTP_400_BAD_REQUEST)
             serializer = self.get_serializer(to_sub)
             return Response(serializer.data, status=status.HTTP_201_CREATED)

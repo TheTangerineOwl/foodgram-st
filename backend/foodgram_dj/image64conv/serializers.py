@@ -16,10 +16,10 @@ class Base64ImageField(serializers.ImageField):
         Переводит представление картинки из base64-строки в указанный формат.
         """
         if isinstance(data, str) and data.startswith('data:image'):
-            format, imgstr = data.split(';base64,')
+            format, imgdata = data.split(';base64,')
             ext = format.split('/')[-1]
 
             filename = f"pic_{uuid.uuid4().hex[:8]}.{ext}"
-            data = ContentFile(b64decode(imgstr), name=filename)
+            data = ContentFile(b64decode(imgdata), name=filename)
 
         return super().to_internal_value(data)

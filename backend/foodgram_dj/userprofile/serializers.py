@@ -22,11 +22,6 @@ class UserProfileSerializer(UserSerializer):
                   'last_name', 'is_subscribed',
                   'avatar']
 
-    def get_avatar_url(self, obj):
-        """Получение ссылки на картинку-аватар."""
-        if obj.avatar:
-            return obj.avatar.url
-        return None
 
     def get_current_user(self):
         """Получение текущего авторизованного пользователя."""

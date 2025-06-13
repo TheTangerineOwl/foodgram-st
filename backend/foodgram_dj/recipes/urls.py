@@ -7,6 +7,7 @@ from .views import (IngredientViewSet,
                     RecipeViewSet,
                     SubscriptionViewSet,
                     SingleSubscriptionViewSet)
+
 # Регистрация маршрутов для recipes и ingredients.
 router = routers.DefaultRouter()
 router.register(r'recipes', RecipeViewSet, basename='recipes')
