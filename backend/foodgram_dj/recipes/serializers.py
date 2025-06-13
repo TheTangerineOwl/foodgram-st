@@ -20,6 +20,7 @@ class IngredientRecipeCreateSerializer(serializers.Serializer):
         queryset=Ingredient.objects.all(),
         source='ingredient'
     )
+    # Количество ингредиента вместе с валидацией
     amount = serializers.IntegerField(
         min_value=1,
         error_messages={
